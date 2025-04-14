@@ -15,7 +15,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import type { TimelineData, TimelineEvent, DateFilterOption, DateFilterConfig } from '@/types';
-import { fetchTimelineData, fetchEventDetails } from '@/lib/api';
+// import { fetchTimelineData, fetchEventDetails } from '@/lib/api';
 import { toast } from 'sonner';
 import { Settings, SortDesc, SortAsc, Download } from 'lucide-react';
 
@@ -194,7 +194,20 @@ function MainContent() {
         queryWithDateFilter += dateRangeText;
       }
 
-      const data = await fetchTimelineData(queryWithDateFilter, apiConfig);
+      //const data = await fetchTimelineData(queryWithDateFilter, apiConfig);
+	  const res = await fetch('/api/fetch-timeline', {
+	    method: 'POST',
+	    headers: {
+	      'Content-Type': 'application/json'
+	    },
+	    body: JSON.stringify({
+	      query: queryWithDateFilter,
+	      apiConfig
+	    })
+	  });
+	  
+
+	  const data = await res.json();
       setTimelineData(data);
       if (data.events.length === 0) {
         toast.warning('未找到相关事件，请尝试其他关键词');
@@ -267,11 +280,25 @@ function MainContent() {
       // 构建更具体的查询，包含事件日期和标题，添加更详细的分析指导
       const detailedQuery = `事件：${event.title}（${event.date}）\n\n请提供该事件的详细分析，包括事件背景、主要过程、关键人物、影响与意义。请尽可能提供多方观点，并分析该事件在${query}整体发展中的位置与作用。`;
 
-      const detailsContent = await fetchEventDetails(
-        event.id,
-        detailedQuery,
-        apiConfig
-      );
+      // const detailsContent = await fetchEventDetails(
+      //   event.id,
+      //   detailedQuery,
+      //   apiConfig
+      // );
+	  const eventId = event.id;
+			const res = await fetch('/api/fetch-event-details', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json'
+				},
+				body: JSON.stringify({
+					eventId,
+					detailedQuery,
+					apiConfig
+				})
+			});
+
+		const detailsContent = await res.json();
 
       return detailsContent;
     } catch (err: unknown) {
