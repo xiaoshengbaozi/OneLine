@@ -371,8 +371,8 @@ function MainContent() {
   return (
     <main className="flex min-h-screen flex-col relative">
       {/* 背景渐变装饰 */}
-      <div className="bg-gradient-purple"></div>
-      <div className="bg-gradient-blue"></div>
+      <div className="bg-gradient-purple" />
+      <div className="bg-gradient-blue" />
 
       {/* 头部 - 位于顶部固定不动 */}
       <header className="fixed top-0 left-0 w-full z-20 flex justify-end items-center p-4 md:px-8">
@@ -448,7 +448,7 @@ function MainContent() {
                 className="rounded-full aspect-square h-9 w-9 bg-primary hover:bg-primary/90"
               >
                 {isLoading ?
-                  <div className="loading-spinner"></div> :
+                  <div className="loading-spinner" /> :
                   <Search size={16} />
                 }
               </Button>
@@ -485,53 +485,55 @@ function MainContent() {
 
       {/* 时间轴容器 */}
       <div className="flex-1 pt-24 pb-12 px-4 md:px-8 w-full max-w-6xl mx-auto">
-        <div
-          ref={timelineRef}
-          className={`timeline-container ${timelineVisible || searchPosition === 'center' ? 'timeline-container-visible' : ''}`}
-        >
-          {error && (
-            <div className="mb-6 sm:mb-8 p-3 sm:p-4 glass text-red-500 dark:text-red-300 rounded-lg text-sm sm:text-base">
-              {error}
-            </div>
-          )}
+        {(timelineVisible || isLoading) && (
+          <div
+            ref={timelineRef}
+            className={`timeline-container ${timelineVisible ? 'timeline-container-visible' : ''}`}
+          >
+            {error && (
+              <div className="mb-6 sm:mb-8 p-3 sm:p-4 glass text-red-500 dark:text-red-300 rounded-lg text-sm sm:text-base">
+                {error}
+              </div>
+            )}
 
-          {filteredEvents.length > 0 && (
-            <div className="flex justify-between mb-4 glass rounded-lg p-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={toggleSortDirection}
-                className="flex items-center gap-1 rounded-full text-xs"
-              >
-                {sortDirection === 'asc' ? (
-                  <>
-                    <SortAsc size={14} /> 从远到近
-                  </>
-                ) : (
-                  <>
-                    <SortDesc size={14} /> 从近到远
-                  </>
-                )}
-              </Button>
+            {filteredEvents.length > 0 && (
+              <div className="flex justify-between mb-4 glass rounded-lg p-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSortDirection}
+                  className="flex items-center gap-1 rounded-full text-xs"
+                >
+                  {sortDirection === 'asc' ? (
+                    <>
+                      <SortAsc size={14} /> 从远到近
+                    </>
+                  ) : (
+                    <>
+                      <SortDesc size={14} /> 从近到远
+                    </>
+                  )}
+                </Button>
 
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={exportAsImage}
-                className="flex items-center gap-1 rounded-full text-xs"
-              >
-                <Download size={14} /> 导出图片
-              </Button>
-            </div>
-          )}
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={exportAsImage}
+                  className="flex items-center gap-1 rounded-full text-xs"
+                >
+                  <Download size={14} /> 导出图片
+                </Button>
+              </div>
+            )}
 
-          <Timeline
-            events={filteredEvents}
-            isLoading={isLoading}
-            onRequestDetails={handleRequestDetails}
-            summary={timelineData.summary}
-          />
-        </div>
+            <Timeline
+              events={filteredEvents}
+              isLoading={isLoading}
+              onRequestDetails={handleRequestDetails}
+              summary={timelineData.summary}
+            />
+          </div>
+        )}
       </div>
 
       <ApiSettings

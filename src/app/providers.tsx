@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import type React from "react";
 import { ThemeProvider } from "@/components/theme-provider";
 import { Toaster } from "sonner";
 

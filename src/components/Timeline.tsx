@@ -106,23 +106,20 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
     // Split content by sections (=== Section ===)
     const sectionsRegex = /===(.*?)===(?:\r?\n|$)/g;
     const sections = [];
-	// titleMatches = [ { 0: "===标题A===", 1: "标题A",index: 0,input: "...",}, { 0: "===标题B===", 1: "标题B", index: 15, input: "..." } ]
-	const titleMatches = [...content.matchAll(sectionsRegex)];
+    const titleMatches = [...content.matchAll(sectionsRegex)];
 
     // Now extract the content for each section
     for (let i = 0; i < titleMatches.length; i++) {
-	 // title of === title ===
       const titleMatch = titleMatches[i];
-	  const sectionTitle = titleMatch[1].trim();
+      const sectionTitle = titleMatch[1].trim();
 
-	  const contentStartIndex = titleMatch.index! + titleMatch[0].length;
+      const contentStartIndex = titleMatch.index! + titleMatch[0].length;
       const contentEndIndex = i < titleMatches.length - 1 ? titleMatches[i + 1].index! : content.length;
 
-      // Extract content from current section start to next section start (or end of content)
       const sectionContent = content.substring(contentStartIndex, contentEndIndex).trim();
 
-       sections.push({ title : sectionTitle, isTitle: true });
-       sections.push({ content: sectionContent, isTitle: false });
+      sections.push({ title: sectionTitle, isTitle: true });
+      sections.push({ content: sectionContent, isTitle: false });
     }
 
     // If no sections were found, just return the whole content as paragraphs
@@ -172,6 +169,11 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
     );
   };
 
+  // 如果没有事件，则不显示任何内容
+  if (events.length === 0 && !isLoading) {
+    return null;
+  }
+
   if (isLoading) {
     // Use predefined skeleton items with unique ids
     const skeletonItems = [
@@ -205,20 +207,6 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
             </div>
           ))}
         </div>
-      </div>
-    );
-  }
-
-  if (events.length === 0) {
-    return (
-      <div className="w-full max-w-3xl mx-auto">
-        <Card className="border-dashed glass-card rounded-xl">
-          <CardContent className="pt-6 flex flex-col items-center justify-center min-h-40 sm:min-h-48">
-            <p className="text-center text-muted-foreground text-sm sm:text-base">
-              请输入关键词，开始生成时间轴
-            </p>
-          </CardContent>
-        </Card>
       </div>
     );
   }
