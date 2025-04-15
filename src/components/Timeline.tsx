@@ -59,10 +59,11 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
         {people.map((person, index) => (
           <div
             key={`${person.name}-${index}`}
-            className="flex items-center gap-1 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs backdrop-blur-sm"
+            className="flex items-center gap-1 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs backdrop-blur-md"
             style={{
-              backgroundColor: `${person.color}20`,
-              borderLeft: `3px solid ${person.color}`,
+              backgroundColor: `${person.color}20`, // 微透明的背景
+              borderLeft: `3px solid ${person.color}`, // 实色边框
+              boxShadow: `0 0 10px ${person.color}10` // 微弱的光晕
             }}
           >
             <Avatar className="h-4 w-4 sm:h-5 sm:w-5">
@@ -105,23 +106,20 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
     // Split content by sections (=== Section ===)
     const sectionsRegex = /===(.*?)===(?:\r?\n|$)/g;
     const sections = [];
-	// titleMatches = [ { 0: "===标题A===", 1: "标题A",index: 0,input: "...",}, { 0: "===标题B===", 1: "标题B", index: 15, input: "..." } ]
-	const titleMatches = [...content.matchAll(sectionsRegex)];
+    const titleMatches = [...content.matchAll(sectionsRegex)];
 
     // Now extract the content for each section
     for (let i = 0; i < titleMatches.length; i++) {
-	 // title of === title ===
       const titleMatch = titleMatches[i];
-	  const sectionTitle = titleMatch[1].trim();
+      const sectionTitle = titleMatch[1].trim();
 
-	  const contentStartIndex = titleMatch.index! + titleMatch[0].length;	  
-      const contentEndIndex = i < titleMatches.length - 1 ? titleMatches[i + 1].index! : content.length; 
+      const contentStartIndex = titleMatch.index! + titleMatch[0].length;
+      const contentEndIndex = i < titleMatches.length - 1 ? titleMatches[i + 1].index! : content.length;
 
-      // Extract content from current section start to next section start (or end of content)
       const sectionContent = content.substring(contentStartIndex, contentEndIndex).trim();
 
-       sections.push({ title : sectionTitle, isTitle: true });
-       sections.push({ content: sectionContent, isTitle: false });
+      sections.push({ title: sectionTitle, isTitle: true });
+      sections.push({ content: sectionContent, isTitle: false });
     }
 
     // If no sections were found, just return the whole content as paragraphs
@@ -171,6 +169,11 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
     );
   };
 
+  // 如果没有事件，则不显示任何内容
+  if (events.length === 0 && !isLoading) {
+    return null;
+  }
+
   if (isLoading) {
     // Use predefined skeleton items with unique ids
     const skeletonItems = [
@@ -191,7 +194,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                 <div className="w-px h-full bg-border/50 rounded-full" />
               </div>
               <div className="flex-1">
-                <Card className="backdrop-blur-lg bg-background/70 border border-border/30 rounded-lg shadow-sm">
+                <Card className="glass-card rounded-lg">
                   <CardHeader className="p-3 sm:p-6">
                     <Skeleton className="h-5 sm:h-6 w-3/4 mb-2 rounded-lg" />
                     <Skeleton className="h-3 sm:h-4 w-1/2 rounded-lg" />
@@ -208,24 +211,10 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
     );
   }
 
-  if (events.length === 0) {
-    return (
-      <div className="w-full max-w-3xl mx-auto">
-        <Card className="border-dashed backdrop-blur-lg bg-background/70 border border-border/30 rounded-lg shadow-sm">
-          <CardContent className="pt-6 flex flex-col items-center justify-center min-h-40 sm:min-h-48">
-            <p className="text-center text-muted-foreground text-sm sm:text-base">
-              请输入关键词，开始生成时间轴
-            </p>
-          </CardContent>
-        </Card>
-      </div>
-    );
-  }
-
   return (
     <div className="w-full max-w-3xl mx-auto">
       {summary && (
-        <Card className="mb-6 sm:mb-8 backdrop-blur-lg bg-background/70 border border-border/30 rounded-lg shadow-sm">
+        <Card className="mb-6 sm:mb-8 glass-card rounded-xl">
           <CardHeader className="p-4 sm:p-6">
             <CardTitle className="text-lg sm:text-xl">事件总结</CardTitle>
           </CardHeader>
@@ -239,9 +228,9 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
         {events.map((event, index) => {
           const isExpanded = expandedEvents.has(event.id);
           return (
-            <div key={event.id} className="flex gap-2 sm:gap-4">
+            <div key={event.id} className="flex gap-2 sm:gap-4 animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
               <div className="flex flex-col items-center">
-                <div className="text-xs sm:text-sm text-muted-foreground whitespace-nowrap mb-1 sm:mb-2 px-2 py-1 rounded-full backdrop-blur-sm bg-background/50 border border-border/30">
+                <div className="event-date">
                   {event.date}
                 </div>
                 <div className="w-px grow bg-border/50 mx-auto rounded-full" />
@@ -250,7 +239,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                 )}
               </div>
               <div className="flex-1 pb-3 sm:pb-4">
-                <Card className="transition-all backdrop-blur-lg bg-background/70 border border-border/30 rounded-lg shadow-sm hover:shadow-md">
+                <Card className="event-card">
                   <CardHeader className="p-3 sm:p-6">
                     <CardTitle className="text-base sm:text-lg">{event.title}</CardTitle>
                     {event.source && (
@@ -291,7 +280,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
       </div>
 
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-md sm:max-w-2xl p-4 sm:p-6 backdrop-blur-lg bg-background/90 border border-border/30 rounded-xl shadow-lg">
+        <DialogContent className="max-w-md sm:max-w-2xl p-4 sm:p-6 glass-card rounded-xl">
           <DialogHeader>
             <DialogTitle className="text-base sm:text-lg">{selectedEvent?.title}</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">

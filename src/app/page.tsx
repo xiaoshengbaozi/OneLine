@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Timeline } from '@/components/Timeline';
@@ -17,14 +17,13 @@ import {
 import type { TimelineData, TimelineEvent, DateFilterOption, DateFilterConfig } from '@/types';
 import { fetchTimelineData, fetchEventDetails } from '@/lib/api';
 import { toast } from 'sonner';
-import { Settings, SortDesc, SortAsc, Download } from 'lucide-react';
+import { Settings, SortDesc, SortAsc, Download, Search, ChevronDown } from 'lucide-react';
 
 function MainContent() {
   const { apiConfig, isConfigured, isPasswordProtected, isPasswordValidated } = useApi();
   const [query, setQuery] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [timelineData, setTimelineData] = useState<TimelineData>({ events: [] });
-  // 不再自动弹出API设置页面，只在用户实际使用时才显示
   const [showSettings, setShowSettings] = useState(false);
   const [error, setError] = useState('');
   const [showFloatingButton, setShowFloatingButton] = useState(false);
@@ -32,9 +31,28 @@ function MainContent() {
   const [filteredEvents, setFilteredEvents] = useState<TimelineEvent[]>([]);
   const [startDate, setStartDate] = useState<string>('');
   const [endDate, setEndDate] = useState<string>('');
-  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc'); // 'asc' for oldest first, 'desc' for newest first
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // 移除自动弹出API设置页面的useEffect
+  // 新增的状态用于控制搜索框位置和时间轴可见性
+  const [searchPosition, setSearchPosition] = useState<'center' | 'top'>('center');
+  const [timelineVisible, setTimelineVisible] = useState(false);
+  const searchRef = useRef<HTMLFormElement>(null);
+  const timelineRef = useRef<HTMLDivElement>(null);
+
+  // 新增处理滚动的函数
+  const scrollToTimeline = () => {
+    if (timelineRef.current) {
+      const header = document.querySelector('header');
+      const headerHeight = header?.offsetHeight || 0;
+      const yOffset = -headerHeight - 20; // 额外空间
+      const y = timelineRef.current.getBoundingClientRect().top + window.scrollY + yOffset;
+
+      window.scrollTo({
+        top: y,
+        behavior: 'smooth'
+      });
+    }
+  };
 
   // Effect to show/hide the floating button when scrolling
   useEffect(() => {
@@ -157,8 +175,24 @@ function MainContent() {
       return;
     }
 
+    // 如果搜索框在中央，则先将其移动到顶部
+    if (searchPosition === 'center') {
+      setSearchPosition('top');
+
+      // 等待动画完成后再获取数据
+      setTimeout(() => {
+        fetchData();
+      }, 700); // 与CSS动画持续时间匹配
+    } else {
+      // 如果已经在顶部，直接获取数据
+      fetchData();
+    }
+  };
+
+  const fetchData = async () => {
     setIsLoading(true);
     setError('');
+    setTimelineVisible(false);
 
     try {
       // Add date range to query if filter is set
@@ -196,6 +230,16 @@ function MainContent() {
 
       const data = await fetchTimelineData(queryWithDateFilter, apiConfig);
       setTimelineData(data);
+
+      // 显示时间轴，添加动画延迟
+      setTimeout(() => {
+        setTimelineVisible(true);
+        // 滚动到时间轴
+        if (data.events.length > 0) {
+          setTimeout(scrollToTimeline, 300);
+        }
+      }, 300);
+
       if (data.events.length === 0) {
         toast.warning('未找到相关事件，请尝试其他关键词');
       }
@@ -325,123 +369,171 @@ function MainContent() {
   };
 
   return (
-    <main className="flex min-h-screen flex-col p-4 md:p-12">
-      <header className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 sm:gap-0 mb-6 sm:mb-8 backdrop-blur-lg bg-background/70 rounded-lg p-4 shadow-sm border border-border/30">
-        <div>
-          <h1 className="text-2xl md:text-3xl font-bold mb-1 md:mb-2">一线</h1>
-          <p className="text-sm md:text-base text-muted-foreground">热点事件时间轴分析工具</p>
-        </div>
+    <main className="flex min-h-screen flex-col relative">
+      {/* 背景渐变装饰 */}
+      <div className="bg-gradient-purple" />
+      <div className="bg-gradient-blue" />
+
+      {/* 头部 - 位于顶部固定不动 */}
+      <header className="fixed top-0 left-0 w-full z-20 flex justify-end items-center p-4 md:px-8">
         <div className="flex gap-2">
           <ThemeToggle />
-          <Button variant="outline" onClick={() => setShowSettings(true)} className="mt-1 sm:mt-0 rounded-full">
-            <Settings size={18} />
-            <span className="ml-2 hidden sm:inline">API设置</span>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setShowSettings(true)}
+            className="rounded-full"
+          >
+            <Settings size={20} />
           </Button>
         </div>
       </header>
 
-      <form onSubmit={handleSubmit} className="flex flex-col gap-2 mb-6 sm:mb-8 backdrop-blur-lg bg-background/70 rounded-lg p-4 shadow-sm border border-border/30">
-        <div className="flex flex-col sm:flex-row gap-2">
-          <Input
-            type="text"
-            placeholder="输入关键词，例如：俄乌冲突"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-            className="flex-1 rounded-full"
-          />
-          <div className="flex gap-2">
-            <Select
-              value={dateFilter.option}
-              onValueChange={handleDateFilterChange as (value: string) => void}
-              defaultValue="all"
-            >
-              <SelectTrigger className="w-[140px] rounded-full">
-                <SelectValue placeholder="筛选时间" />
-              </SelectTrigger>
-              <SelectContent className="backdrop-blur-md bg-background/80 border border-border/50 rounded-lg">
-                <SelectItem value="month">一个月内</SelectItem>
-                <SelectItem value="halfYear">半年内</SelectItem>
-                <SelectItem value="year">一年内</SelectItem>
-                <SelectItem value="all">不限时间</SelectItem>
-                <SelectItem value="custom">自定义</SelectItem>
-              </SelectContent>
-            </Select>
-            <Button type="submit" disabled={isLoading} className="rounded-full">
-              {isLoading ? '生成中...' : '生成时间轴'}
-            </Button>
-          </div>
-        </div>
-
-        {/* Custom date range inputs */}
-        {dateFilter.option === 'custom' && (
-          <div className="flex flex-col sm:flex-row gap-2 mt-2">
-            <div className="flex-1 flex gap-2 items-center">
-              <label htmlFor="start-date" className="text-sm whitespace-nowrap">开始日期:</label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={handleStartDateChange}
-                className="flex-1 rounded-lg"
-              />
-            </div>
-            <div className="flex-1 flex gap-2 items-center">
-              <label htmlFor="end-date" className="text-sm whitespace-nowrap">结束日期:</label>
-              <Input
-                id="end-date"
-                type="date"
-                value={endDate}
-                onChange={handleEndDateChange}
-                className="flex-1 rounded-lg"
-              />
-            </div>
+      {/* 搜索表单 - 可以在中央和顶部之间切换 */}
+      <form
+        ref={searchRef}
+        onSubmit={handleSubmit}
+        className={searchPosition === 'center' ? 'search-container-center' : 'search-container-top'}
+      >
+        {searchPosition === 'center' && (
+          <div className="flex flex-col items-center mb-8 animate-slide-down">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-center page-title">一线</h1>
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 text-center max-w-xl mx-auto">
+              AI驱动的热点事件时间轴 · 洞察历史脉络
+            </p>
           </div>
         )}
+
+        <div className="p-4 w-full">
+          <div className="glass-card rounded-full overflow-hidden flex items-center p-1 pr-2">
+            <Input
+              type="text"
+              placeholder="输入关键词，如：俄乌冲突、中美贸易..."
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              className="flex-1 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/70"
+            />
+
+            <div className="flex items-center">
+              <Select
+                value={dateFilter.option}
+                onValueChange={handleDateFilterChange as (value: string) => void}
+                defaultValue="all"
+              >
+                <SelectTrigger className="w-auto border-0 bg-transparent mr-2 focus:ring-0">
+                  <div className="flex items-center">
+                    <ChevronDown size={14} className="mr-1 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground">
+                      {dateFilter.option === 'all' && '所有时间'}
+                      {dateFilter.option === 'month' && '近一个月'}
+                      {dateFilter.option === 'halfYear' && '近半年'}
+                      {dateFilter.option === 'year' && '近一年'}
+                      {dateFilter.option === 'custom' && '自定义'}
+                    </span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="glass-card border-0">
+                  <SelectItem value="all">所有时间</SelectItem>
+                  <SelectItem value="month">近一个月</SelectItem>
+                  <SelectItem value="halfYear">近半年</SelectItem>
+                  <SelectItem value="year">近一年</SelectItem>
+                  <SelectItem value="custom">自定义</SelectItem>
+                </SelectContent>
+              </Select>
+
+              <Button
+                type="submit"
+                size="icon"
+                disabled={isLoading}
+                className="rounded-full aspect-square h-9 w-9 bg-primary hover:bg-primary/90"
+              >
+                {isLoading ?
+                  <div className="loading-spinner" /> :
+                  <Search size={16} />
+                }
+              </Button>
+            </div>
+          </div>
+
+          {/* 自定义日期范围输入 */}
+          {dateFilter.option === 'custom' && (
+            <div className="flex flex-col sm:flex-row gap-2 mt-3 glass p-3 rounded-xl">
+              <div className="flex-1 flex gap-2 items-center">
+                <label htmlFor="start-date" className="text-sm whitespace-nowrap">开始日期:</label>
+                <Input
+                  id="start-date"
+                  type="date"
+                  value={startDate}
+                  onChange={handleStartDateChange}
+                  className="flex-1 glass-input text-sm h-8"
+                />
+              </div>
+              <div className="flex-1 flex gap-2 items-center">
+                <label htmlFor="end-date" className="text-sm whitespace-nowrap">结束日期:</label>
+                <Input
+                  id="end-date"
+                  type="date"
+                  value={endDate}
+                  onChange={handleEndDateChange}
+                  className="flex-1 glass-input text-sm h-8"
+                />
+              </div>
+            </div>
+          )}
+        </div>
       </form>
 
-      {error && (
-        <div className="mb-6 sm:mb-8 p-3 sm:p-4 bg-red-50 dark:bg-red-900/20 text-red-500 dark:text-red-300 rounded-lg backdrop-blur-lg text-sm sm:text-base border border-red-200 dark:border-red-800/50">
-          {error}
-        </div>
-      )}
-
-      {filteredEvents.length > 0 && (
-        <div className="flex justify-between mb-4 backdrop-blur-lg bg-background/70 rounded-lg p-2 shadow-sm border border-border/30">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={toggleSortDirection}
-            className="flex items-center gap-1 rounded-full"
+      {/* 时间轴容器 */}
+      <div className="flex-1 pt-24 pb-12 px-4 md:px-8 w-full max-w-6xl mx-auto">
+        {(timelineVisible || isLoading) && (
+          <div
+            ref={timelineRef}
+            className={`timeline-container ${timelineVisible ? 'timeline-container-visible' : ''}`}
           >
-            {sortDirection === 'asc' ? (
-              <>
-                <SortAsc size={16} /> 从远到近
-              </>
-            ) : (
-              <>
-                <SortDesc size={16} /> 从近到远
-              </>
+            {error && (
+              <div className="mb-6 sm:mb-8 p-3 sm:p-4 glass text-red-500 dark:text-red-300 rounded-lg text-sm sm:text-base">
+                {error}
+              </div>
             )}
-          </Button>
 
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={exportAsImage}
-            className="flex items-center gap-1 rounded-full"
-          >
-            <Download size={16} /> 导出图片
-          </Button>
-        </div>
-      )}
+            {filteredEvents.length > 0 && (
+              <div className="flex justify-between mb-4 glass rounded-lg p-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={toggleSortDirection}
+                  className="flex items-center gap-1 rounded-full text-xs"
+                >
+                  {sortDirection === 'asc' ? (
+                    <>
+                      <SortAsc size={14} /> 从远到近
+                    </>
+                  ) : (
+                    <>
+                      <SortDesc size={14} /> 从近到远
+                    </>
+                  )}
+                </Button>
 
-      <div className="timeline-container backdrop-blur-lg bg-background/70 rounded-lg p-4 shadow-sm border border-border/30">
-        <Timeline
-          events={filteredEvents}
-          isLoading={isLoading}
-          onRequestDetails={handleRequestDetails}
-          summary={timelineData.summary}
-        />
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={exportAsImage}
+                  className="flex items-center gap-1 rounded-full text-xs"
+                >
+                  <Download size={14} /> 导出图片
+                </Button>
+              </div>
+            )}
+
+            <Timeline
+              events={filteredEvents}
+              isLoading={isLoading}
+              onRequestDetails={handleRequestDetails}
+              summary={timelineData.summary}
+            />
+          </div>
+        )}
       </div>
 
       <ApiSettings
@@ -454,7 +546,7 @@ function MainContent() {
         <Button
           variant="secondary"
           size="sm"
-          className="fixed bottom-4 right-4 z-50 rounded-full p-3 shadow-md sm:hidden backdrop-blur-lg bg-background/70 border border-border/30"
+          className="fixed bottom-4 right-4 z-50 rounded-full p-3 shadow-md sm:hidden glass"
           onClick={() => setShowSettings(true)}
         >
           <Settings size={20} />
