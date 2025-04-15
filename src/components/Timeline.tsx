@@ -104,42 +104,24 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
 
     // Split content by sections (=== Section ===)
     const sectionsRegex = /===(.*?)===(?:\r?\n|$)/g;
-    let sections = [];
-    let match;
-    let lastIndex = 0;
-
-    // Extract all section headers and their positions
-    while ((match = sectionsRegex.exec(content)) !== null) {
-      const sectionTitle = match[1].trim();
-      const sectionStart = match.index + match[0].length;
-
-      // Push the section title and its content start position
-      sections.push({
-        title: sectionTitle,
-        start: sectionStart,
-        isTitle: true,
-      });
-
-      // Update the last matched index
-      lastIndex = sectionStart;
-    }
+    const sections = [];
+	// titleMatches = [ { 0: "===标题A===", 1: "标题A",index: 0,input: "...",}, { 0: "===标题B===", 1: "标题B", index: 15, input: "..." } ]
+	const titleMatches = [...content.matchAll(sectionsRegex)];
 
     // Now extract the content for each section
-    for (let i = 0; i < sections.length; i++) {
-      const currentSection = sections[i];
-      const nextSectionIndex = i < sections.length - 1 ? sections[i + 1].start - 6 : content.length; // -6 for the "===" part
+    for (let i = 0; i < titleMatches.length; i++) {
+	 // title of === title ===
+      const titleMatch = titleMatches[i];
+	  const sectionTitle = titleMatch[1].trim();
+
+	  const contentStartIndex = titleMatch.index! + titleMatch[0].length;	  
+      const contentEndIndex = i < titleMatches.length - 1 ? titleMatches[i + 1].index! : content.length; 
 
       // Extract content from current section start to next section start (or end of content)
-      const sectionContent = content.substring(currentSection.start, nextSectionIndex).trim();
+      const sectionContent = content.substring(contentStartIndex, contentEndIndex).trim();
 
-      // Add the content as a separate item
-      sections.splice(i + 1, 0, {
-        content: sectionContent,
-        isTitle: false,
-      });
-
-      // Skip the newly added content in the next iteration
-      i++;
+       sections.push({ title : sectionTitle, isTitle: true });
+       sections.push({ content: sectionContent, isTitle: false });
     }
 
     // If no sections were found, just return the whole content as paragraphs
