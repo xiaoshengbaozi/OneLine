@@ -154,8 +154,9 @@
          transition-all duration-700 ease-in-out;
 }
 
+/* timeline-container相关的样式部分 */
 .timeline-container {
-  @apply mt-24 opacity-0 transition-opacity duration-700;
+  @apply mt-24 opacity-0 transition-opacity duration-700 w-full;
 }
 
 .timeline-container-visible {

@@ -375,8 +375,7 @@ function MainContent() {
       <div className="bg-gradient-blue"></div>
 
       {/* 头部 - 位于顶部固定不动 */}
-      <header className="fixed top-0 left-0 w-full z-20 flex justify-between items-center p-4 md:px-8">
-        <div></div> {/* 左侧留空 */}
+      <header className="fixed top-0 left-0 w-full z-20 flex justify-end items-center p-4 md:px-8">
         <div className="flex gap-2">
           <ThemeToggle />
           <Button
@@ -398,8 +397,8 @@ function MainContent() {
       >
         {searchPosition === 'center' && (
           <div className="flex flex-col items-center mb-8 animate-slide-down">
-            <h1 className="text-4xl md:text-5xl font-bold mb-2 text-center page-title">一线</h1>
-            <p className="text-lg md:text-xl text-muted-foreground mb-8 text-center">
+            <h1 className="text-4xl md:text-5xl font-bold mb-4 text-center page-title">一线</h1>
+            <p className="text-lg md:text-xl text-muted-foreground mb-8 text-center max-w-xl mx-auto">
               AI驱动的热点事件时间轴 · 洞察历史脉络
             </p>
           </div>
