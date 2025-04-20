@@ -19,12 +19,12 @@ interface SearchProgressProps {
 }
 
 export function SearchProgress({ steps, visible, isActive }: SearchProgressProps) {
-  const stepsEndRef = useRef<HTMLDivElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
 
-  // 自动滚动到最新步骤
+  // 自动滚动到底部
   useEffect(() => {
-    if (steps.length > 0 && stepsEndRef.current) {
-      stepsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    if (steps.length > 0 && containerRef.current) {
+      containerRef.current.scrollTop = containerRef.current.scrollHeight;
     }
   }, [steps]);
 
@@ -39,7 +39,10 @@ export function SearchProgress({ steps, visible, isActive }: SearchProgressProps
             <span className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-pulse"></span>
           )}
         </h3>
-        <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2" id="search-progress-container">
+        <div
+          className="space-y-2 max-h-[200px] overflow-y-auto pr-2"
+          ref={containerRef}
+        >
           {steps.map((step) => (
             <div key={step.id} className="flex items-start text-xs">
               <div className="mr-2 mt-1">
@@ -68,7 +71,6 @@ export function SearchProgress({ steps, visible, isActive }: SearchProgressProps
               </div>
             </div>
           ))}
-          <div ref={stepsEndRef} /> {/* 这个元素用于自动滚动到底部 */}
         </div>
       </CardContent>
     </Card>

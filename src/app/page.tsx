@@ -537,19 +537,18 @@ function MainContent() {
               </div>
             </div>
           )}
-
-          {/* 搜索进度显示 - 移到输入框下方 */}
-          {searchProgressVisible && (
-            <div className="mt-3">
-              <SearchProgress
-                steps={searchProgressSteps}
-                visible={searchProgressVisible}
-                isActive={searchProgressActive}
-              />
-            </div>
-          )}
         </div>
       </form>
+
+      {/* 搜索进度显示 - 独立于表单，放在搜索表单下方 */}
+      <div className={`w-full max-w-3xl mx-auto px-4 transition-opacity duration-300 ${searchProgressVisible ? 'opacity-100' : 'opacity-0'}`}
+           style={{marginTop: searchPosition === 'center' ? "calc(50vh + 180px)" : "80px", zIndex: 15}}>
+        <SearchProgress
+          steps={searchProgressSteps}
+          visible={searchProgressVisible}
+          isActive={searchProgressActive}
+        />
+      </div>
 
       {/* 时间轴容器 */}
       <div className="flex-1 pt-24 pb-12 px-4 md:px-8 w-full max-w-6xl mx-auto">

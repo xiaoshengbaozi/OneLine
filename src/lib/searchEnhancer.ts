@@ -1,6 +1,6 @@
 import axios from 'axios';
-import { type ApiConfig, type SearxngResult, type SearxngSearchItem } from '@/types';
-import { type ProgressCallback } from './api';
+import type { ApiConfig, SearxngResult, SearxngSearchItem } from '@/types';
+import type { ProgressCallback } from './api';
 
 // NLP相关工具函数 - 中文分词简易实现
 function segmentChineseWords(text: string): string[] {
