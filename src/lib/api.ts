@@ -205,34 +205,58 @@ function getApiUrl(apiConfig: ApiConfig, endpoint = 'chat'): string {
   return `/api/${endpoint}`;
 }
 
+// 新增: 定义进度回调类型
+export type ProgressCallback = (message: string, status: 'pending' | 'completed' | 'error') => void;
+
 // 新增：执行SearXNG搜索
 export async function searchWithSearxng(
   query: string,
-  apiConfig: ApiConfig
+  apiConfig: ApiConfig,
+  progressCallback?: ProgressCallback
 ): Promise<SearxngResult | null> {
   try {
     // 检查是否启用SearXNG
     if (!apiConfig.searxng?.enabled || !apiConfig.searxng?.url) {
-      console.log('SearXNG搜索未启用或URL未配置');
+      if (progressCallback) {
+        progressCallback('SearXNG搜索未启用，跳过搜索步骤', 'completed');
+      }
       return null;
     }
 
+    if (progressCallback) {
+      progressCallback(`正在使用搜索引擎查询：${query}`, 'pending');
+    }
+
     // 使用增强搜索功能
-    console.log('使用增强搜索功能...');
-    return enhancedSearch(query, apiConfig);
+    const result = await enhancedSearch(query, apiConfig, progressCallback);
+
+    if (progressCallback) {
+      if (result) {
+        progressCallback(`搜索完成，获取到 ${result.results.length} 条结果`, 'completed');
+      } else {
+        progressCallback('搜索未返回有效结果', 'completed');
+      }
+    }
+
+    return result;
   } catch (error) {
     console.error("SearXNG搜索请求失败:", error);
 
+    if (progressCallback) {
+      progressCallback(`搜索失败：${error instanceof Error ? error.message : '未知错误'}`, 'error');
+      progressCallback('尝试使用简单搜索作为备选方案', 'pending');
+    }
+
     // 如果增强搜索失败，回退到简单搜索
-    console.log('增强搜索失败，回退到简单搜索...');
-    return simpleSearch(query, apiConfig);
+    return simpleSearch(query, apiConfig, progressCallback);
   }
 }
 
 // 简单搜索 - 作为后备方案
 async function simpleSearch(
   query: string,
-  apiConfig: ApiConfig
+  apiConfig: ApiConfig,
+  progressCallback?: ProgressCallback
 ): Promise<SearxngResult | null> {
   try {
     if (!apiConfig.searxng?.enabled || !apiConfig.searxng?.url) {
@@ -242,6 +266,10 @@ async function simpleSearch(
     const searxngUrl = apiConfig.searxng.url;
     // 使用搜索API端点
     const apiUrl = '/api/search';
+
+    if (progressCallback) {
+      progressCallback(`使用简单搜索模式查询：${query}`, 'pending');
+    }
 
     const payload = {
       query,
@@ -253,13 +281,11 @@ async function simpleSearch(
       numResults: apiConfig.searxng.numResults || 10
     };
 
-    console.log('发送简单SearXNG搜索请求:', {
-      端点: apiUrl,
-      查询: query,
-      SearXNG: searxngUrl
-    });
-
     const response = await axios.post(apiUrl, payload);
+
+    if (progressCallback) {
+      progressCallback('简单搜索完成', 'completed');
+    }
 
     // 检查响应格式，确保返回的是有效的SearxngResult
     if (response.data && Array.isArray(response.data.results)) {
@@ -292,6 +318,9 @@ async function simpleSearch(
     return response.data;
   } catch (error) {
     console.error("简单搜索请求失败:", error);
+    if (progressCallback) {
+      progressCallback(`简单搜索也失败了：${error instanceof Error ? error.message : '未知错误'}`, 'error');
+    }
     return null;
   }
 }
@@ -345,24 +374,36 @@ function formatSearchResultsForAI(results: SearxngResult | null): string {
   return formattedText;
 }
 
-// 修改：fetchTimelineData函数，添加搜索支持
+// 修改：fetchTimelineData函数，添加搜索支持和进度回调
 export async function fetchTimelineData(
   query: string,
-  apiConfig: ApiConfig
+  apiConfig: ApiConfig,
+  progressCallback?: ProgressCallback
 ): Promise<TimelineData> {
   try {
     const { model, endpoint, apiKey } = apiConfig;
     // 使用中间层API端点
     const apiUrl = getApiUrl(apiConfig, 'chat');
 
+    if (progressCallback) {
+      progressCallback(`开始处理关键词：${query}`, 'pending');
+    }
+
     // 先执行搜索查询获取最新信息
     let searchResults = null;
     let searchContext = "";
 
     if (apiConfig.searxng?.enabled) {
-      searchResults = await searchWithSearxng(query, apiConfig);
+      searchResults = await searchWithSearxng(query, apiConfig, progressCallback);
       searchContext = formatSearchResultsForAI(searchResults);
-      console.log('获取到搜索结果:', searchResults ? '成功' : '失败');
+      if (progressCallback) {
+        progressCallback(`搜索完成，${searchResults && searchResults.results.length > 0 ? `获取到${searchResults.results.length}条结果` : '未找到结果'}`,
+          searchResults && searchResults.results.length > 0 ? 'completed' : 'completed');
+      }
+    }
+
+    if (progressCallback) {
+      progressCallback(`正在使用AI助手生成时间轴，模型：${model}`, 'pending');
     }
 
     const payload = {
@@ -400,10 +441,23 @@ export async function fetchTimelineData(
     // 提取AI响应内容
     const content = response.data.choices[0].message.content;
 
+    if (progressCallback) {
+      progressCallback('AI助手已生成时间轴数据，正在处理结果', 'completed');
+    }
+
     // 解析文本响应
-    return parseTimelineText(content);
+    const result = parseTimelineText(content);
+
+    if (progressCallback) {
+      progressCallback(`生成完成，共包含 ${result.events.length} 个事件`, 'completed');
+    }
+
+    return result;
   } catch (error) {
     console.error("API request failed:", error);
+    if (progressCallback) {
+      progressCallback(`生成时间轴失败：${error instanceof Error ? error.message : '未知错误'}`, 'error');
+    }
     throw error;
   }
 }
@@ -412,21 +466,32 @@ export async function fetchTimelineData(
 export async function fetchEventDetails(
   eventId: string,
   query: string,
-  apiConfig: ApiConfig
+  apiConfig: ApiConfig,
+  progressCallback?: ProgressCallback
 ): Promise<string> {
   try {
     const { model, endpoint, apiKey } = apiConfig;
     // 使用新的 event-details 端点
     const apiUrl = getApiUrl(apiConfig, 'event-details');
 
+    if (progressCallback) {
+      progressCallback(`正在获取事件【${query.split('\n\n')[0].substring(0, 30)}...】的详细信息`, 'pending');
+    }
+
     // 先执行搜索查询获取最新信息
     let searchResults = null;
     let searchContext = "";
 
     if (apiConfig.searxng?.enabled) {
-      searchResults = await searchWithSearxng(query, apiConfig);
+      searchResults = await searchWithSearxng(query, apiConfig, progressCallback);
       searchContext = formatSearchResultsForAI(searchResults);
-      console.log('获取到事件详情搜索结果:', searchResults ? '成功' : '失败');
+      if (progressCallback) {
+        progressCallback('事件详情搜索完成', 'completed');
+      }
+    }
+
+    if (progressCallback) {
+      progressCallback('正在使用AI助手分析事件详情', 'pending');
     }
 
     const payload = {
@@ -464,10 +529,17 @@ export async function fetchEventDetails(
 
     const response = await axios.post(apiUrl, payload, { headers });
 
+    if (progressCallback) {
+      progressCallback('事件详情分析完成', 'completed');
+    }
+
     // 提取内容
     return response.data.choices[0].message.content;
   } catch (error) {
     console.error("API request failed:", error);
+    if (progressCallback) {
+      progressCallback(`获取事件详情失败：${error instanceof Error ? error.message : '未知错误'}`, 'error');
+    }
     throw error;
   }
 }
