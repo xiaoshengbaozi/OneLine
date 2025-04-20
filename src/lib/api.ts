@@ -2,6 +2,9 @@ import axios from 'axios';
 import { type ApiConfig, type TimelineData, TimelineEvent, type Person, type SearxngResult, type SearxngSearchItem } from '@/types';
 import { enhancedSearch } from './searchEnhancer';
 
+// 设置API请求的总超时时间
+const API_TIMEOUT_MS = 180000; // 180秒
+
 // 修改系统提示，使用分段文本格式而不是JSON
 const SYSTEM_PROMPT = `
 你是一个专业的历史事件分析助手。我需要你将热点事件以时间轴的方式呈现。
@@ -436,7 +439,11 @@ export async function fetchTimelineData(
       使用搜索: searchContext ? '是' : '否'
     });
 
-    const response = await axios.post(apiUrl, payload, { headers });
+    // 设置请求超时时间为180秒
+    const response = await axios.post(apiUrl, payload, {
+      headers,
+      timeout: API_TIMEOUT_MS
+    });
 
     // 提取AI响应内容
     const content = response.data.choices[0].message.content;
@@ -527,7 +534,11 @@ export async function fetchEventDetails(
       使用搜索: searchContext ? '是' : '否'
     });
 
-    const response = await axios.post(apiUrl, payload, { headers });
+    // 设置请求超时时间为180秒
+    const response = await axios.post(apiUrl, payload, {
+      headers,
+      timeout: API_TIMEOUT_MS
+    });
 
     if (progressCallback) {
       progressCallback('事件详情分析完成', 'completed');

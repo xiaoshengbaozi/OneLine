@@ -1,8 +1,9 @@
 "use client";
 
-import React from 'react';
+import React, { useEffect, useRef } from 'react';
 import { Card, CardContent } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
+import { CheckIcon } from 'lucide-react';
 
 export interface SearchProgressStep {
   id: string;
@@ -18,6 +19,15 @@ interface SearchProgressProps {
 }
 
 export function SearchProgress({ steps, visible, isActive }: SearchProgressProps) {
+  const stepsEndRef = useRef<HTMLDivElement>(null);
+
+  // 自动滚动到最新步骤
+  useEffect(() => {
+    if (steps.length > 0 && stepsEndRef.current) {
+      stepsEndRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [steps]);
+
   if (!visible) return null;
 
   return (
@@ -26,18 +36,20 @@ export function SearchProgress({ steps, visible, isActive }: SearchProgressProps
         <h3 className="text-sm font-medium mb-2 flex items-center">
           <span className="mr-2">搜索进度</span>
           {isActive && (
-            <span className="inline-block h-2 w-2 rounded-full bg-green-500 animate-pulse"></span>
+            <span className="inline-block h-2 w-2 rounded-full bg-amber-400 animate-pulse"></span>
           )}
         </h3>
-        <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2">
+        <div className="space-y-2 max-h-[200px] overflow-y-auto pr-2" id="search-progress-container">
           {steps.map((step) => (
             <div key={step.id} className="flex items-start text-xs">
               <div className="mr-2 mt-1">
                 {step.status === 'pending' && (
-                  <div className="loading-dot h-2 w-2"></div>
+                  <div className="h-2 w-2 rounded-full bg-amber-400 animate-pulse"></div>
                 )}
                 {step.status === 'completed' && (
-                  <div className="h-2 w-2 rounded-full bg-green-500"></div>
+                  <div className="h-3 w-3 rounded-full text-green-500 flex items-center justify-center">
+                    <CheckIcon className="h-2 w-2" />
+                  </div>
                 )}
                 {step.status === 'error' && (
                   <div className="h-2 w-2 rounded-full bg-red-500"></div>
@@ -56,6 +68,7 @@ export function SearchProgress({ steps, visible, isActive }: SearchProgressProps
               </div>
             </div>
           ))}
+          <div ref={stepsEndRef} /> {/* 这个元素用于自动滚动到底部 */}
         </div>
       </CardContent>
     </Card>

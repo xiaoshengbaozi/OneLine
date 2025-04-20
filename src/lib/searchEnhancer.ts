@@ -444,11 +444,11 @@ export async function parallelSearch(
     const searchFunctions = batch.map(query => async () => {
       // 重试参数
       const maxRetries = 2;
-      const initialTimeout = 15000; // 初始超时15秒
+      const initialTimeout = 30000; // 初始超时30秒
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        // 增加超时时间（每次重试增加5秒）
-        const timeout = initialTimeout + (attempt * 5000);
+        // 增加超时时间（每次重试增加15秒）
+        const timeout = initialTimeout + (attempt * 15000);
 
         try {
           // 构建请求参数
