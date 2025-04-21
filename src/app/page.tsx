@@ -15,7 +15,8 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import type { TimelineData, TimelineEvent, DateFilterOption, DateFilterConfig } from '@/types';
-import { fetchTimelineData, fetchEventDetails } from '@/lib/api';
+import { fetchTimelineData, fetchEventDetails, type ProgressCallback } from '@/lib/api';
+import { SearchProgress, type SearchProgressStep } from '@/components/SearchProgress';
 import { toast } from 'sonner';
 import { Settings, SortDesc, SortAsc, Download, Search, ChevronDown } from 'lucide-react';
 
@@ -38,6 +39,30 @@ function MainContent() {
   const [timelineVisible, setTimelineVisible] = useState(false);
   const searchRef = useRef<HTMLFormElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+
+  // 新增进度状态
+  const [searchProgressVisible, setSearchProgressVisible] = useState(false);
+  const [searchProgressSteps, setSearchProgressSteps] = useState<SearchProgressStep[]>([]);
+  const [searchProgressActive, setSearchProgressActive] = useState(false);
+
+  // 进度回调函数
+  const progressCallback: ProgressCallback = (message, status) => {
+    const newStep: SearchProgressStep = {
+      id: `step-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
+      message,
+      status,
+      timestamp: new Date()
+    };
+
+    setSearchProgressSteps(prev => [...prev, newStep]);
+
+    // 如果是错误或完成状态，不再激活
+    if (status !== 'pending') {
+      // 但只更新这一步的状态，不改变整体进度条的激活状态
+    } else {
+      setSearchProgressActive(true);
+    }
+  };
 
   // 新增处理滚动的函数
   const scrollToTimeline = () => {
@@ -175,6 +200,11 @@ function MainContent() {
       return;
     }
 
+    // 重置进度显示
+    setSearchProgressSteps([]);
+    setSearchProgressActive(true);
+    setSearchProgressVisible(true);
+
     // 如果搜索框在中央，则先将其移动到顶部
     if (searchPosition === 'center') {
       setSearchPosition('top');
@@ -228,7 +258,7 @@ function MainContent() {
         queryWithDateFilter += dateRangeText;
       }
 
-      const data = await fetchTimelineData(queryWithDateFilter, apiConfig);
+      const data = await fetchTimelineData(queryWithDateFilter, apiConfig, progressCallback);
       setTimelineData(data);
 
       // 显示时间轴，添加动画延迟
@@ -238,6 +268,15 @@ function MainContent() {
         if (data.events.length > 0) {
           setTimeout(scrollToTimeline, 300);
         }
+
+        // 标记进度显示为非活动状态，但仍然保持可见，让用户可以查看进度历史
+        setSearchProgressActive(false);
+
+        // 3秒后自动隐藏进度显示
+        setTimeout(() => {
+          setSearchProgressVisible(false);
+        }, 3000);
+
       }, 300);
 
       if (data.events.length === 0) {
@@ -248,6 +287,9 @@ function MainContent() {
       setError(errorMessage);
       toast.error(errorMessage);
       console.error('Error fetching timeline data:', err);
+
+      // 出错时也标记为非活动状态
+      setSearchProgressActive(false);
     } finally {
       setIsLoading(false);
     }
@@ -307,6 +349,11 @@ function MainContent() {
       return '请先验证访问密码';
     }
 
+    // 显示进度条
+    setSearchProgressSteps([]);
+    setSearchProgressActive(true);
+    setSearchProgressVisible(true);
+
     try {
       // 构建更具体的查询，包含事件日期和标题，添加更详细的分析指导
       const detailedQuery = `事件：${event.title}（${event.date}）\n\n请提供该事件的详细分析，包括事件背景、主要过程、关键人物、影响与意义。请尽可能提供多方观点，并分析该事件在${query}整体发展中的位置与作用。`;
@@ -314,14 +361,24 @@ function MainContent() {
       const detailsContent = await fetchEventDetails(
         event.id,
         detailedQuery,
-        apiConfig
+        apiConfig,
+        progressCallback
       );
+
+      // 3秒后自动隐藏进度显示
+      setTimeout(() => {
+        setSearchProgressVisible(false);
+        setSearchProgressActive(false);
+      }, 3000);
 
       return detailsContent;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '获取详细信息失败';
       toast.error(errorMessage);
       console.error('Error fetching event details:', err);
+
+      setSearchProgressActive(false);
+
       return '获取详细信息失败，请稍后再试';
     }
   };
@@ -482,6 +539,16 @@ function MainContent() {
           )}
         </div>
       </form>
+
+      {/* 搜索进度显示 - 独立于表单，放在搜索表单下方 */}
+      <div className={`w-full max-w-3xl mx-auto px-4 transition-opacity duration-300 ${searchProgressVisible ? 'opacity-100' : 'opacity-0'}`}
+           style={{marginTop: searchPosition === 'center' ? "calc(50vh + 180px)" : "80px", zIndex: 15}}>
+        <SearchProgress
+          steps={searchProgressSteps}
+          visible={searchProgressVisible}
+          isActive={searchProgressActive}
+        />
+      </div>
 
       {/* 时间轴容器 */}
       <div className="flex-1 pt-24 pb-12 px-4 md:px-8 w-full max-w-6xl mx-auto">

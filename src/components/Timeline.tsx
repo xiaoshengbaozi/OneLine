@@ -235,7 +235,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                 </div>
                 <div className="w-px grow bg-border/50 mx-auto rounded-full" />
                 {index < events.length - 1 && (
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-primary mt-3 sm:mt-4" />
+                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-amber-400 animate-pulse" />
                 )}
               </div>
               <div className="flex-1 pb-3 sm:pb-4">

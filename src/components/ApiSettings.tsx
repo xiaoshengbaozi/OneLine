@@ -552,7 +552,7 @@ export function ApiSettings({ open, onOpenChange }: ApiSettingsProps) {
                           min="1"
                           max="20"
                           value={searxngConfig.numResults}
-                          onChange={(e) => handleSearxngChange('numResults', parseInt(e.target.value) || 5)}
+                          onChange={(e) => handleSearxngChange('numResults', Number.parseInt(e.target.value) || 5)}
                           placeholder="例如: 5"
                           className="sm:col-span-3 rounded-lg"
                           disabled={!searxngConfig.enabled}
