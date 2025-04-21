@@ -22,7 +22,7 @@ const SYSTEM_PROMPT = `
 标题：事件标题，简明扼要，突出核心内容
 描述：事件详细描述，包括事件的完整经过、各方行动和反应，以及事件的具体细节和背景信息
 相关人物：人物1(角色1,#颜色代码1);人物2(角色2,#颜色代码2)
-来源：事件信息来源，如新闻媒体、官方公告、研究报告等，请尽可能提供具体来源
+来源：事件信息来源，如新闻媒体、官方公告、研究报告等，请尽可能提供具体来源，包括原始新闻的URL链接
 
 --事件2--
 日期：...
@@ -57,7 +57,7 @@ const SYSTEM_PROMPT = `
 2. 为每个相关人物分配不同的颜色代码，让用户能够轻松识别不同人物的动向
 3. 同一立场的人物使用相似的颜色
 4. 尽可能客观描述各方观点和行为
-5. 为每个事件标注可能的信息来源
+5. 为每个事件标注可能的信息来源，务必包含原始新闻的URL链接
 6. 如果事件有具体的日期，请务必提供精确日期
 7. 严格按照上述格式返回，不要添加其他格式
 8. 对于有争议的事件，确保描述多方的观点
@@ -176,6 +176,13 @@ function parseTimelineText(text: string): TimelineData {
         const sourceMatch = block.match(/来源：\s*([\s\S]*?)(?=\s*--事件|$)/);
         const source = sourceMatch?.[1]?.trim() || "未指明来源";
 
+        // 提取URL (如果来源中包含URL)
+        let sourceUrl = "";
+        const urlMatch = source.match(/(https?:\/\/[^\s]+)/);
+        if (urlMatch) {
+          sourceUrl = urlMatch[1];
+        }
+
         // 创建事件对象
         return {
           id: `event-${index}`,
@@ -183,7 +190,8 @@ function parseTimelineText(text: string): TimelineData {
           title,
           description,
           people,
-          source
+          source,
+          sourceUrl
         };
       });
 
@@ -373,6 +381,7 @@ function formatSearchResultsForAI(results: SearxngResult | null): string {
   formattedText += "4. 可靠的信息来源\n";
   formattedText += "5. 相关的背景和影响\n";
   formattedText += "6. 尽可能分析不同来源信息的差异，整合最完整和准确的事实\n";
+  formattedText += "7. 在事件来源中，必须加入原始新闻的URL链接，以便用户查看原始报道\n";
 
   return formattedText;
 }

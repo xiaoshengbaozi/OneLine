@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 interface TimelineProps {
   events: TimelineEvent[];
   isLoading?: boolean;
-  onRequestDetails: (event: TimelineEvent) => Promise<string>; // Updated to return a Promise
+  onRequestDetails: (event: TimelineEvent) => Promise<string>;
   summary?: string;
 }
 
@@ -20,7 +20,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
   const [detailsContent, setDetailsContent] = useState<string>('');
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
-  const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false); // New state for loading details
+  const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false);
 
   const toggleExpand = (eventId: string) => {
     setExpandedEvents(prev => {
@@ -52,7 +52,6 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
     }
   };
 
-  // Function to render people badges
   const renderPeople = (people: Person[]) => {
     return (
       <div className="flex flex-wrap gap-1 sm:gap-2 mt-2">
@@ -61,9 +60,9 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
             key={`${person.name}-${index}`}
             className="flex items-center gap-1 rounded-full px-1.5 sm:px-2 py-0.5 sm:py-1 text-xs backdrop-blur-md"
             style={{
-              backgroundColor: `${person.color}20`, // 微透明的背景
-              borderLeft: `3px solid ${person.color}`, // 实色边框
-              boxShadow: `0 0 10px ${person.color}10` // 微弱的光晕
+              backgroundColor: `${person.color}20`,
+              borderLeft: `3px solid ${person.color}`,
+              boxShadow: `0 0 10px ${person.color}10`
             }}
           >
             <Avatar className="h-4 w-4 sm:h-5 sm:w-5">
@@ -84,31 +83,24 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
     );
   };
 
-  // Function to render markdown content properly
   const renderMarkdown = (content: string) => {
-    // Helper function to format text with markdown-like features
     const formatMarkdownText = (text: string) => {
-      // Bold text
       const boldRegex = /\*\*(.*?)\*\*/g;
       let formatted = text.replace(boldRegex, '<strong>$1</strong>');
 
-      // Italic text
       const italicRegex = /\*(.*?)\*/g;
       formatted = formatted.replace(italicRegex, '<em>$1</em>');
 
-      // Inline code
       const codeRegex = /`(.*?)`/g;
       formatted = formatted.replace(codeRegex, '<code>$1</code>');
 
       return formatted;
     };
 
-    // Split content by sections (=== Section ===)
     const sectionsRegex = /===(.*?)===(?:\r?\n|$)/g;
     const sections = [];
     const titleMatches = [...content.matchAll(sectionsRegex)];
 
-    // Now extract the content for each section
     for (let i = 0; i < titleMatches.length; i++) {
       const titleMatch = titleMatches[i];
       const sectionTitle = titleMatch[1].trim();
@@ -122,7 +114,6 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
       sections.push({ content: sectionContent, isTitle: false });
     }
 
-    // If no sections were found, just return the whole content as paragraphs
     if (sections.length === 0) {
       return (
         <div className="space-y-4">
@@ -139,7 +130,6 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
       );
     }
 
-    // Render the sections
     return (
       <div className="space-y-4">
         {sections.map((section, index) => {
@@ -169,13 +159,11 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
     );
   };
 
-  // 如果没有事件，则不显示任何内容
   if (events.length === 0 && !isLoading) {
     return null;
   }
 
   if (isLoading) {
-    // Use predefined skeleton items with unique ids
     const skeletonItems = [
       { id: 'skeleton-1' },
       { id: 'skeleton-2' },
@@ -245,6 +233,16 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                     {event.source && (
                       <CardDescription className="text-xs mt-1">
                         来源: {event.source}
+                        {event.sourceUrl && (
+                          <a
+                            href={event.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="ml-1 text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline"
+                          >
+                            [原文链接]
+                          </a>
+                        )}
                       </CardDescription>
                     )}
                     {renderPeople(event.people)}
