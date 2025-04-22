@@ -444,7 +444,7 @@ export async function parallelSearch(
     const searchFunctions = batch.map(query => async () => {
       // 重试参数
       const maxRetries = 2;
-      const initialTimeout = 30000; // 初始超时30秒
+      const initialTimeout = 300000; // 初始超时300秒
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
         // 增加超时时间（每次重试增加15秒）

@@ -2,8 +2,8 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 
 // 增加超时时间以处理更多并行请求和多引擎搜索
-const DEFAULT_TIMEOUT_MS = 30000; // 默认30秒
-const MAX_TIMEOUT_MS = 60000; // 最大超时60秒
+const DEFAULT_TIMEOUT_MS = 300000; // 默认300秒
+const MAX_TIMEOUT_MS = 300000; // 最大超时300秒
 
 // 搜索引擎列表，用于UI展示和配置
 export const AVAILABLE_ENGINES = [
@@ -50,13 +50,15 @@ export async function POST(request: Request) {
     const requestTimeout = requestData.timeout || DEFAULT_TIMEOUT_MS;
     const timeout = Math.min(Math.max(requestTimeout, 1000), MAX_TIMEOUT_MS);
 
-    // 构建SearXNG API请求URL
-    let searchUrl = `${searxngUrl}/search`;
-
     // 确保URL格式正确，并规范化URL
+    let searchUrl = searxngUrl;
     if (!searchUrl.startsWith('http://') && !searchUrl.startsWith('https://')) {
-      searchUrl = `https://${searchUrl}/search`;
+      searchUrl = `https://${searchUrl}`;
     }
+    // 确保URL末尾没有多余的斜杠
+    searchUrl = searchUrl.replace(/\/+$/, '');
+    // 拼接搜索路径
+    searchUrl += '/search';
 
     // 构建请求参数
     const params: Record<string, any> = {

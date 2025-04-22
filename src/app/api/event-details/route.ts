@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import axios from 'axios';
 
 // 设置较长的超时时间，避免 504 错误
-const TIMEOUT_MS = 60000; // 60 秒
+const TIMEOUT_MS = 300000; // 300 秒
 
 export async function POST(request: Request) {
   try {

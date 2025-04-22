@@ -3,7 +3,7 @@ import { type ApiConfig, type TimelineData, TimelineEvent, type Person, type Sea
 import { enhancedSearch } from './searchEnhancer';
 
 // 设置API请求的总超时时间
-const API_TIMEOUT_MS = 180000; // 180秒
+const API_TIMEOUT_MS = 300000; // 300秒
 
 // 修改系统提示，使用分段文本格式而不是JSON
 const SYSTEM_PROMPT = `
@@ -448,7 +448,7 @@ export async function fetchTimelineData(
       使用搜索: searchContext ? '是' : '否'
     });
 
-    // 设置请求超时时间为180秒
+    // 设置请求超时时间为300秒
     const response = await axios.post(apiUrl, payload, {
       headers,
       timeout: API_TIMEOUT_MS
@@ -543,7 +543,7 @@ export async function fetchEventDetails(
       使用搜索: searchContext ? '是' : '否'
     });
 
-    // 设置请求超时时间为180秒
+    // 设置请求超时时间为300秒
     const response = await axios.post(apiUrl, payload, {
       headers,
       timeout: API_TIMEOUT_MS
