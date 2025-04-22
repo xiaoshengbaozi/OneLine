@@ -240,7 +240,16 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                     <CardTitle className="text-base sm:text-lg">{event.title}</CardTitle>
                     {event.source && (
                       <CardDescription className="text-xs mt-1">
-                        来源: {event.source}
+                        来源: {event.sourceUrl ? (
+                          <a
+                            href={event.sourceUrl}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="hover:underline text-blue-500 dark:text-blue-400"
+                          >
+                            {event.source.replace(event.sourceUrl, '').replace(/[()（）]/g, '').trim() || '查看来源'}
+                          </a>
+                        ) : event.source}
                       </CardDescription>
                     )}
                     {renderPeople(event.people)}

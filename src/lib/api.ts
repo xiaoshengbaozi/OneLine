@@ -146,7 +146,6 @@ function parseTimelineText(text: string): TimelineData {
         if (peopleText) {
           const personEntries = peopleText.split(';').map(p => p.trim()).filter(p => p.length > 0);
 
-          // 使用for...of替代forEach
           for (const personEntry of personEntries) {
             // 格式：人物名(角色,#颜色)
             const personMatch = personEntry.match(/(.*?)\((.*?),(.*?)\)/);
@@ -174,13 +173,32 @@ function parseTimelineText(text: string): TimelineData {
 
         // 提取来源
         const sourceMatch = block.match(/来源：\s*([\s\S]*?)(?=\s*--事件|$)/);
-        const source = sourceMatch?.[1]?.trim() || "未指明来源";
+        const sourceRaw = sourceMatch?.[1]?.trim() || "未指明来源";
 
-        // 提取URL (如果来源中包含URL)
+        // 提取URL和网站名称
         let sourceUrl = "";
-        const urlMatch = source.match(/(https?:\/\/[^\s]+)/);
-        if (urlMatch) {
-          sourceUrl = urlMatch[1];
+        let sourceName = sourceRaw;
+
+        // 处理"网站名(URL)"格式
+        const nameUrlMatch = sourceRaw.match(/^(.+?)[\(（]+(https?:\/\/[^\s\)）]+)[\)）]+/);
+        if (nameUrlMatch) {
+          sourceName = nameUrlMatch[1].trim();
+          sourceUrl = nameUrlMatch[2].trim();
+        } else {
+          // 如果不是上述格式，尝试直接提取URL
+          const urlMatch = sourceRaw.match(/(https?:\/\/[^\s]+)/);
+          if (urlMatch) {
+            sourceUrl = urlMatch[1];
+            // 如果整个来源就是URL，使用域名作为显示文本
+            if (sourceRaw.trim() === sourceUrl) {
+              try {
+                const url = new URL(sourceUrl);
+                sourceName = url.hostname.replace(/^www\./, '');
+              } catch (e) {
+                sourceName = "查看来源";
+              }
+            }
+          }
         }
 
         // 创建事件对象
@@ -190,7 +208,7 @@ function parseTimelineText(text: string): TimelineData {
           title,
           description,
           people,
-          source,
+          source: sourceName,
           sourceUrl
         };
       });
