@@ -64,35 +64,6 @@ function MainContent() {
     }
   };
 
-  // For testing news source URLs
-  useEffect(() => {
-    // Test data with source URLs - will be removed after testing
-    const testEvents: TimelineEvent[] = [
-      {
-        id: 'test-1',
-        date: '2023-01-01',
-        title: '测试新闻源链接功能',
-        description: '这是一个测试事件，用于测试新闻源链接功能',
-        people: [{name: '测试人物', role: '测试角色', color: '#ff0000'}],
-        source: '测试新闻来源',
-        sourceUrl: 'https://example.com/news/1'
-      },
-      {
-        id: 'test-2',
-        date: '2023-01-02',
-        title: '第二个测试事件',
-        description: '这是第二个测试事件，用于测试没有URL的情况',
-        people: [{name: '测试人物2', role: '测试角色2', color: '#00ff00'}],
-        source: '测试新闻来源2'
-      }
-    ];
-
-    // Uncomment the following line to test
-    // setTimelineData({events: testEvents});
-    // setFilteredEvents(testEvents);
-    // setTimelineVisible(true);
-  }, []);
-
   // 新增处理滚动的函数
   const scrollToTimeline = () => {
     if (timelineRef.current) {

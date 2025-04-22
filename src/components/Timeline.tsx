@@ -247,7 +247,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                             rel="noopener noreferrer"
                             className="hover:underline text-blue-500 dark:text-blue-400"
                           >
-                            {event.source.replace(event.sourceUrl, '').replace(/[()（）]/g, '').trim() || '查看来源'}
+                            {event.source}
                           </a>
                         ) : event.source}
                       </CardDescription>

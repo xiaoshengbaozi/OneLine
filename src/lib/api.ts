@@ -179,18 +179,22 @@ function parseTimelineText(text: string): TimelineData {
         let sourceUrl = "";
         let sourceName = sourceRaw;
 
-        // 处理"网站名(URL)"格式
+        // 处理"网站名（URL）"或"网站名(URL)"等格式
         const nameUrlMatch = sourceRaw.match(/^(.+?)[\(（]+(https?:\/\/[^\s\)）]+)[\)）]+/);
         if (nameUrlMatch) {
           sourceName = nameUrlMatch[1].trim();
           sourceUrl = nameUrlMatch[2].trim();
         } else {
-          // 如果不是上述格式，尝试直接提取URL
-          const urlMatch = sourceRaw.match(/(https?:\/\/[^\s]+)/);
+          // 尝试直接提取URL
+          const urlMatch = sourceRaw.match(/(https?:\/\/[^\s\)）]+)/);
           if (urlMatch) {
             sourceUrl = urlMatch[1];
-            // 如果整个来源就是URL，使用域名作为显示文本
-            if (sourceRaw.trim() === sourceUrl) {
+            // 如果URL前有内容，取URL前的内容为sourceName（去除尾部标点）
+            const beforeUrl = sourceRaw.split(sourceUrl)[0].trim().replace(/[\s:：\-—]+$/, '');
+            if (beforeUrl) {
+              sourceName = beforeUrl;
+            } else {
+              // 如果整个来源就是URL，使用域名作为显示文本
               try {
                 const url = new URL(sourceUrl);
                 sourceName = url.hostname.replace(/^www\./, '');
@@ -198,6 +202,10 @@ function parseTimelineText(text: string): TimelineData {
                 sourceName = "查看来源";
               }
             }
+          } else {
+            // 没有URL，全部作为名称
+            sourceName = sourceRaw;
+            sourceUrl = "";
           }
         }
 
