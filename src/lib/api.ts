@@ -183,12 +183,12 @@ function parseTimelineText(text: string): TimelineData {
         const nameUrlMatch = sourceRaw.match(/^(.+?)[\(（]+(https?:\/\/[^\s\)）]+)[\)）]+/);
         if (nameUrlMatch) {
           sourceName = nameUrlMatch[1].trim();
-          sourceUrl = nameUrlMatch[2].trim();
+          sourceUrl = nameUrlMatch[2].trim().replace(/[\)\]]$/, '');
         } else {
           // 尝试直接提取URL
           const urlMatch = sourceRaw.match(/(https?:\/\/[^\s\)）]+)/);
           if (urlMatch) {
-            sourceUrl = urlMatch[1];
+            sourceUrl = urlMatch[1].replace(/[\)\]]$/, '');
             // 如果URL前有内容，取URL前的内容为sourceName（去除尾部标点）
             const beforeUrl = sourceRaw.split(sourceUrl)[0].trim().replace(/[\s:：\-—]+$/, '');
             if (beforeUrl) {

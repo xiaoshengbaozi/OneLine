@@ -94,11 +94,11 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
       const codeRegex = /`(.*?)`/g;
       formatted = formatted.replace(codeRegex, '<code>$1</code>');
 
-      // 添加对Markdown链接的处理，解决链接尾部带括号的问题
+      // 添加对Markdown链接的处理，解决链接尾部带括号或方括号的问题
       const linkRegex = /\[(.*?)\]\((.*?)\)/g;
       formatted = formatted.replace(linkRegex, (match, text, url) => {
-        // 移除URL中可能的尾部括号
-        const cleanUrl = url.replace(/\)$/, '');
+        // 移除URL中可能的尾部括号和方括号
+        const cleanUrl = url.replace(/[\)\]]$/, '');
         return `<a href="${cleanUrl}" target="_blank" rel="noopener noreferrer" class="text-blue-500 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300 underline">${text}</a>`;
       });
 
@@ -242,7 +242,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                       <CardDescription className="text-xs mt-1">
                         来源: {event.sourceUrl ? (
                           <a
-                            href={event.sourceUrl}
+                            href={event.sourceUrl.replace(/[\)\]]$/, '')}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:underline text-blue-500 dark:text-blue-400"
