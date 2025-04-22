@@ -2,8 +2,8 @@ import axios from 'axios';
 import { type ApiConfig, type TimelineData, TimelineEvent, type Person, type SearxngResult, type SearxngSearchItem } from '@/types';
 import { enhancedSearch } from './searchEnhancer';
 
-// 设置API请求的总超时时间
-const API_TIMEOUT_MS = 300000; // 300秒
+// 设置API请求的总超时时间，避免超出Netlify限制
+const API_TIMEOUT_MS = 45000; // 45秒，低于Netlify的60秒限制
 
 // 修改系统提示，使用分段文本格式而不是JSON
 const SYSTEM_PROMPT = `
@@ -404,7 +404,7 @@ function formatSearchResultsForAI(results: SearxngResult | null): string {
   return formattedText;
 }
 
-// 修改：fetchTimelineData函数，添加搜索支持和进度回调
+// 修改：fetchTimelineData函数，修改超时设置
 export async function fetchTimelineData(
   query: string,
   apiConfig: ApiConfig,
@@ -466,7 +466,7 @@ export async function fetchTimelineData(
       使用搜索: searchContext ? '是' : '否'
     });
 
-    // 设置请求超时时间为300秒
+    // 设置请求超时时间为45秒，避免Netlify的504超时
     const response = await axios.post(apiUrl, payload, {
       headers,
       timeout: API_TIMEOUT_MS
@@ -496,7 +496,7 @@ export async function fetchTimelineData(
   }
 }
 
-// 修改：fetchEventDetails函数，添加搜索支持
+// 修改：fetchEventDetails函数，修改超时设置
 export async function fetchEventDetails(
   eventId: string,
   query: string,
@@ -561,7 +561,7 @@ export async function fetchEventDetails(
       使用搜索: searchContext ? '是' : '否'
     });
 
-    // 设置请求超时时间为300秒
+    // 设置请求超时时间为45秒，避免Netlify的504超时
     const response = await axios.post(apiUrl, payload, {
       headers,
       timeout: API_TIMEOUT_MS

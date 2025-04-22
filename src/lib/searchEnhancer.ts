@@ -423,7 +423,7 @@ export async function parallelSearch(
   }
 
   // 构建搜索批次，避免一次性发送太多请求
-  const batchSize = 5; // 每批最多5个请求
+  const batchSize = 4; // 每批最多4个请求，减少并发量
   const batches: string[][] = [];
 
   for (let i = 0; i < queries.length; i += batchSize) {
@@ -443,12 +443,12 @@ export async function parallelSearch(
     // 构建每个查询的搜索函数，包含重试逻辑
     const searchFunctions = batch.map(query => async () => {
       // 重试参数
-      const maxRetries = 2;
-      const initialTimeout = 300000; // 初始超时300秒
+      const maxRetries = 1; // 减少最大重试次数，避免超时
+      const initialTimeout = 40000; // 初始超时40秒，符合Netlify限制
 
       for (let attempt = 0; attempt <= maxRetries; attempt++) {
-        // 增加超时时间（每次重试增加15秒）
-        const timeout = initialTimeout + (attempt * 15000);
+        // 每次重试仅增加5秒超时时间，确保不超过Netlify的限制
+        const timeout = initialTimeout + (attempt * 5000);
 
         try {
           // 构建请求参数
@@ -468,7 +468,7 @@ export async function parallelSearch(
             language: apiConfig.searxng?.language || 'zh',
             timeRange: apiConfig.searxng?.timeRange || 'year',
             engines: engines,
-            numResults: 5, // 每个查询取较少的结果，避免过多重复
+            numResults: 4, // 减少每个查询的结果数，避免处理大量数据
             safesearch: 0, // 禁用安全搜索，获取更多结果
             display_error: true, // 获取详细错误信息
             timeout // 动态超时时间
