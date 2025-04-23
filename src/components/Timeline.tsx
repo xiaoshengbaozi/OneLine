@@ -242,7 +242,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                       <CardDescription className="text-xs mt-1">
                         来源: {event.sourceUrl ? (
                           <a
-                            href={event.sourceUrl.replace(/[\)\]]$/, '')}
+                            href={event.sourceUrl}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="hover:underline text-blue-500 dark:text-blue-400"
