@@ -2,8 +2,8 @@ import axios from 'axios';
 import { type ApiConfig, type TimelineData, TimelineEvent, type Person, type SearxngResult, type SearxngSearchItem } from '@/types';
 import { enhancedSearch } from './searchEnhancer';
 
-// 设置API请求的总超时时间
-const API_TIMEOUT_MS = 180000; // 180秒
+// 设置API请求的总超时时间，避免超出Netlify限制
+const API_TIMEOUT_MS = 45000; // 45秒，低于Netlify的60秒限制
 
 // 修改系统提示，使用分段文本格式而不是JSON
 const SYSTEM_PROMPT = `
@@ -22,7 +22,7 @@ const SYSTEM_PROMPT = `
 标题：事件标题，简明扼要，突出核心内容
 描述：事件详细描述，包括事件的完整经过、各方行动和反应，以及事件的具体细节和背景信息
 相关人物：人物1(角色1,#颜色代码1);人物2(角色2,#颜色代码2)
-来源：事件信息来源，如新闻媒体、官方公告、研究报告等，请尽可能提供具体来源
+来源：事件信息来源，如新闻媒体、官方公告、研究报告等，请尽可能提供具体来源，包括原始新闻的URL链接
 
 --事件2--
 日期：...
@@ -57,7 +57,7 @@ const SYSTEM_PROMPT = `
 2. 为每个相关人物分配不同的颜色代码，让用户能够轻松识别不同人物的动向
 3. 同一立场的人物使用相似的颜色
 4. 尽可能客观描述各方观点和行为
-5. 为每个事件标注可能的信息来源
+5. 为每个事件标注可能的信息来源，务必包含原始新闻的URL链接
 6. 如果事件有具体的日期，请务必提供精确日期
 7. 严格按照上述格式返回，不要添加其他格式
 8. 对于有争议的事件，确保描述多方的观点
@@ -146,7 +146,6 @@ function parseTimelineText(text: string): TimelineData {
         if (peopleText) {
           const personEntries = peopleText.split(';').map(p => p.trim()).filter(p => p.length > 0);
 
-          // 使用for...of替代forEach
           for (const personEntry of personEntries) {
             // 格式：人物名(角色,#颜色)
             const personMatch = personEntry.match(/(.*?)\((.*?),(.*?)\)/);
@@ -174,7 +173,44 @@ function parseTimelineText(text: string): TimelineData {
 
         // 提取来源
         const sourceMatch = block.match(/来源：\s*([\s\S]*?)(?=\s*--事件|$)/);
-        const source = sourceMatch?.[1]?.trim() || "未指明来源";
+        const sourceRaw = sourceMatch?.[1]?.trim() || "未指明来源";
+
+        // 提取URL和网站名称
+        let sourceUrl = "";
+        let sourceName = sourceRaw;
+
+        // 处理"网站名（URL）"或"网站名(URL)"等格式
+        const nameUrlMatch = sourceRaw.match(/^(.+?)[\(（]+(https?:\/\/[^\s\)）]+)[\)）]+/);
+        if (nameUrlMatch) {
+          sourceName = nameUrlMatch[1].trim();
+          const originalUrl = nameUrlMatch[2].trim(); // 保存原始URL
+          sourceUrl = originalUrl.replace(/[\)\]]$/, ''); // 清理URL
+        } else {
+          // 尝试直接提取URL
+          const urlMatch = sourceRaw.match(/(https?:\/\/[^\s\)）]+)/);
+          if (urlMatch) {
+            const originalUrl = urlMatch[1]; // 保存原始URL
+            sourceUrl = originalUrl.replace(/[\)\]]$/, ''); // 清理URL
+
+            // 如果URL前有内容，取URL前的内容为sourceName（去除尾部标点）
+            const beforeUrl = sourceRaw.split(originalUrl)[0].trim().replace(/[\s:：\-—]+$/, '');
+            if (beforeUrl) {
+              sourceName = beforeUrl;
+            } else {
+              // 如果整个来源就是URL，使用域名作为显示文本
+              try {
+                const url = new URL(sourceUrl);
+                sourceName = url.hostname.replace(/^www\./, '');
+              } catch (e) {
+                sourceName = "查看来源";
+              }
+            }
+          } else {
+            // 没有URL，全部作为名称
+            sourceName = sourceRaw;
+            sourceUrl = "";
+          }
+        }
 
         // 创建事件对象
         return {
@@ -183,7 +219,8 @@ function parseTimelineText(text: string): TimelineData {
           title,
           description,
           people,
-          source
+          source: sourceName,
+          sourceUrl
         };
       });
 
@@ -373,11 +410,12 @@ function formatSearchResultsForAI(results: SearxngResult | null): string {
   formattedText += "4. 可靠的信息来源\n";
   formattedText += "5. 相关的背景和影响\n";
   formattedText += "6. 尽可能分析不同来源信息的差异，整合最完整和准确的事实\n";
+  formattedText += "7. 在事件来源中，必须加入原始新闻的URL链接，以便用户查看原始报道\n";
 
   return formattedText;
 }
 
-// 修改：fetchTimelineData函数，添加搜索支持和进度回调
+// 修改：fetchTimelineData函数，修改超时设置
 export async function fetchTimelineData(
   query: string,
   apiConfig: ApiConfig,
@@ -439,7 +477,7 @@ export async function fetchTimelineData(
       使用搜索: searchContext ? '是' : '否'
     });
 
-    // 设置请求超时时间为180秒
+    // 设置请求超时时间为45秒，避免Netlify的504超时
     const response = await axios.post(apiUrl, payload, {
       headers,
       timeout: API_TIMEOUT_MS
@@ -469,7 +507,7 @@ export async function fetchTimelineData(
   }
 }
 
-// 修改：fetchEventDetails函数，添加搜索支持
+// 修改：fetchEventDetails函数，修改超时设置
 export async function fetchEventDetails(
   eventId: string,
   query: string,
@@ -534,7 +572,7 @@ export async function fetchEventDetails(
       使用搜索: searchContext ? '是' : '否'
     });
 
-    // 设置请求超时时间为180秒
+    // 设置请求超时时间为45秒，避免Netlify的504超时
     const response = await axios.post(apiUrl, payload, {
       headers,
       timeout: API_TIMEOUT_MS

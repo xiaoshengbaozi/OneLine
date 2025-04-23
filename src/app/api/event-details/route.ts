@@ -1,8 +1,9 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 
-// 设置较长的超时时间，避免 504 错误
-const TIMEOUT_MS = 60000; // 60 秒
+// 设置较短的超时时间，避免 Netlify 504 错误
+const TIMEOUT_MS = 45000; // 45 秒，低于 Netlify 的 60 秒限制
+const MAX_RETRIES = 2; // 最大重试次数
 
 export async function POST(request: Request) {
   try {
@@ -62,14 +63,57 @@ export async function POST(request: Request) {
       apiKeyConfigured: finalApiKey ? '已配置' : '未配置'
     });
 
-    // 发送请求到实际的 API 端点，增加超时设置
-    const response = await axios.post(finalEndpoint, payload, {
-      headers,
-      timeout: TIMEOUT_MS
-    });
+    // 实现重试逻辑
+    let lastError;
+    for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
+      try {
+        // 发送请求到实际的 API 端点，使用较短的超时设置
+        const response = await axios.post(finalEndpoint, payload, {
+          headers,
+          timeout: TIMEOUT_MS
+        });
 
-    // 返回 API 响应
-    return NextResponse.json(response.data);
+        // 请求成功，返回 API 响应
+        return NextResponse.json(response.data);
+      } catch (error: any) {
+        console.error(`Event details API request failed (attempt ${attempt + 1}/${MAX_RETRIES + 1}):`, error.message);
+        lastError = error;
+
+        // 如果已经是最后一次尝试，则不再重试
+        if (attempt === MAX_RETRIES) {
+          break;
+        }
+
+        // 等待一段时间后重试
+        await new Promise(resolve => setTimeout(resolve, 1000));
+      }
+    }
+
+    // 所有重试均失败，返回错误响应
+    console.error('All event details API request attempts failed:', lastError);
+
+    // 构建更详细的错误信息
+    const errorDetails = {
+      error: 'API request failed after multiple attempts',
+      message: lastError?.message,
+    };
+
+    // 如果有响应数据，添加到错误中
+    if (lastError?.response) {
+      errorDetails.status = lastError.response.status;
+      errorDetails.statusText = lastError.response.statusText;
+      errorDetails.data = lastError.response.data;
+    } else if (lastError?.request) {
+      // 请求已发出但没有收到响应
+      errorDetails.request = 'Request was made but no response was received';
+      errorDetails.timeout = lastError.code === 'ECONNABORTED';
+    }
+
+    // 返回错误响应
+    return NextResponse.json(
+      errorDetails,
+      { status: lastError?.response?.status || 500 }
+    );
   } catch (error: any) {
     console.error('Event details API route error:', error);
 
