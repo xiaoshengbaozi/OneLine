@@ -15,7 +15,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import type { TimelineData, TimelineEvent, DateFilterOption, DateFilterConfig } from '@/types';
-import { fetchTimelineData, fetchEventDetails, type ProgressCallback } from '@/lib/api';
+import { fetchTimelineData, fetchEventDetails, type ProgressCallback, type StreamCallback } from '@/lib/api';
 import { SearchProgress, type SearchProgressStep } from '@/components/SearchProgress';
 import { toast } from 'sonner';
 import { Settings, SortDesc, SortAsc, Download, Search, ChevronDown } from 'lucide-react';
@@ -258,7 +258,15 @@ function MainContent() {
         queryWithDateFilter += dateRangeText;
       }
 
-      const data = await fetchTimelineData(queryWithDateFilter, apiConfig, progressCallback);
+      // 使用流式输出模式获取时间轴数据
+      const streamCallback: StreamCallback = (chunk, isDone) => {
+        // 这里可以实现实时展示流式输出的逻辑
+        // 但是由于时间轴数据需要解析处理后才能展示，所以这里不直接展示流式输出
+        // 只在调试时使用
+        console.log('收到流式数据块:', chunk.substring(0, 50) + (chunk.length > 50 ? '...' : ''));
+      };
+
+      const data = await fetchTimelineData(queryWithDateFilter, apiConfig, progressCallback, streamCallback);
       setTimelineData(data);
 
       // 显示时间轴，添加动画延迟
@@ -334,7 +342,8 @@ function MainContent() {
     }
   };
 
-  const handleRequestDetails = async (event: TimelineEvent): Promise<string> => {
+  // 支持流式输出的详情请求
+  const handleRequestDetails = async (event: TimelineEvent, streamCallback?: StreamCallback): Promise<string> => {
     // 检查API是否已配置，以及是否已通过密码验证（如果需要）
     if (!isConfigured) {
       toast.info('请先配置API设置');
@@ -358,11 +367,13 @@ function MainContent() {
       // 构建更具体的查询，包含事件日期和标题，添加更详细的分析指导
       const detailedQuery = `事件：${event.title}（${event.date}）\n\n请提供该事件的详细分析，包括事件背景、主要过程、关键人物、影响与意义。请尽可能提供多方观点，并分析该事件在${query}整体发展中的位置与作用。`;
 
+      // 使用流式输出获取事件详情
       const detailsContent = await fetchEventDetails(
         event.id,
         detailedQuery,
         apiConfig,
-        progressCallback
+        progressCallback,
+        streamCallback
       );
 
       // 3秒后自动隐藏进度显示

@@ -124,6 +124,16 @@
   50% { opacity: 0.8; }
 }
 
+/* 新增：打字光标闪烁动画效果 */
+@keyframes cursorBlink {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 1; }
+}
+
+.animate-cursor-blink {
+  animation: cursorBlink 0.8s infinite;
+}
+
 .animate-fade-in {
   animation: fadeIn 0.5s ease-in-out forwards;
 }
@@ -242,4 +252,9 @@
 /* 加载动画 */
 .loading-spinner {
   @apply h-4 w-4 border-2 border-white/30 border-t-white rounded-full animate-spin;
+}
+
+/* 流式输出打字光标样式 */
+.stream-cursor {
+  @apply inline-block h-4 w-2 bg-primary/80 align-middle ml-1 animate-cursor-blink;
 }
