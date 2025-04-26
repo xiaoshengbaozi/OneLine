@@ -1,17 +1,18 @@
 "use client";
 
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { TimelineEvent, Person } from '@/types';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { StreamCallback } from '@/lib/api';
 
 interface TimelineProps {
   events: TimelineEvent[];
   isLoading?: boolean;
-  onRequestDetails: (event: TimelineEvent) => Promise<string>;
+  onRequestDetails: (event: TimelineEvent, streamCallback?: StreamCallback) => Promise<string>;
   summary?: string;
 }
 
@@ -21,6 +22,17 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
   const [showDetails, setShowDetails] = useState<boolean>(false);
   const [expandedEvents, setExpandedEvents] = useState<Set<string>>(new Set());
   const [isLoadingDetails, setIsLoadingDetails] = useState<boolean>(false);
+  const [isStreamingDetails, setIsStreamingDetails] = useState<boolean>(false);
+
+  // 用于存储流式响应的ref
+  const streamContentRef = useRef<string>('');
+
+  // 清理流式响应缓存
+  useEffect(() => {
+    if (!showDetails) {
+      streamContentRef.current = '';
+    }
+  }, [showDetails]);
 
   const toggleExpand = (eventId: string) => {
     setExpandedEvents(prev => {
@@ -39,15 +51,26 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
     setDetailsContent('');
     setShowDetails(true);
     setIsLoadingDetails(true);
+    setIsStreamingDetails(true);
+    streamContentRef.current = '';
 
     try {
-      const details = await onRequestDetails(event);
-      if (details) {
-        setDetailsContent(details);
-      }
+      // 流式回调处理函数
+      const streamCallback: StreamCallback = (chunk, isDone) => {
+        streamContentRef.current += chunk;
+        setDetailsContent(streamContentRef.current);
+
+        if (isDone) {
+          setIsStreamingDetails(false);
+          setIsLoadingDetails(false);
+        }
+      };
+
+      // 使用流式请求
+      await onRequestDetails(event, streamCallback);
     } catch (error) {
       console.error('Failed to fetch details:', error);
-    } finally {
+      setIsStreamingDetails(false);
       setIsLoadingDetails(false);
     }
   };
@@ -293,8 +316,13 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
             </DialogDescription>
           </DialogHeader>
           <div className="mt-2 sm:mt-4 max-h-[60vh] overflow-y-auto">
-            {!isLoadingDetails && detailsContent ? (
-              renderMarkdown(detailsContent)
+            {!isLoadingDetails || (isStreamingDetails && detailsContent) ? (
+              <div className="relative">
+                {renderMarkdown(detailsContent)}
+                {isStreamingDetails && (
+                  <div className="stream-cursor"></div>
+                )}
+              </div>
             ) : (
               <div className="space-y-2">
                 <Skeleton className="h-3 sm:h-4 w-full rounded-md" />
@@ -306,6 +334,32 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* 流式光标样式 */}
+      <style jsx global>{`
+        .stream-cursor {
+          display: inline-block;
+          width: 1ch;
+          height: 1.15em;
+          vertical-align: bottom;
+          background: none;
+          color: inherit;
+          font-weight: bold;
+          animation: stream-cursor-blink 1s steps(1) infinite;
+          font-size: 1.3em;
+          line-height: 1;
+        }
+        .stream-cursor::after {
+          content: "▌";
+          display: inline-block;
+        }
+        @keyframes stream-cursor-blink {
+          0% { opacity: 1; }
+          49% { opacity: 1; }
+          50% { opacity: 0; }
+          100% { opacity: 0; }
+        }
+      `}</style>
     </div>
   );
 }

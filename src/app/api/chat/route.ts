@@ -5,6 +5,17 @@ import axios from 'axios';
 const TIMEOUT_MS = 45000; // 45 秒，低于 Netlify 的 60 秒限制
 const MAX_RETRIES = 2; // 最大重试次数
 
+// 新增函数：创建流式响应
+function createStreamResponse(readable: ReadableStream) {
+  return new Response(readable, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      'Connection': 'keep-alive',
+    },
+  });
+}
+
 export async function POST(request: Request) {
   try {
     // 从环境变量中获取 API 密钥和端点
@@ -20,6 +31,9 @@ export async function POST(request: Request) {
 
     // 解析请求体
     const requestData = await request.json();
+
+    // 检查请求中是否要求流式输出
+    const streamMode = requestData.stream === true;
 
     // 检查请求中是否使用环境变量配置的标记
     const isUsingEnvConfig =
@@ -53,7 +67,9 @@ export async function POST(request: Request) {
     // 构建实际发送给 API 的请求体
     const payload = {
       ...requestData,
-      model
+      model,
+      // 如果客户端请求流式输出，确保在API请求中启用
+      stream: streamMode
     };
 
     // 构建请求头
@@ -66,10 +82,71 @@ export async function POST(request: Request) {
       endpoint: finalEndpoint,
       model: model,
       usingEnvConfig: isUsingEnvConfig,
-      apiKeyConfigured: finalApiKey ? '已配置' : '未配置'
+      apiKeyConfigured: finalApiKey ? '已配置' : '未配置',
+      streamMode: streamMode ? '已启用' : '未启用'
     });
 
-    // 实现重试逻辑
+    // 如果启用了流式模式，使用流式响应
+    if (streamMode) {
+      try {
+        // 创建一个TransformStream来处理API响应
+        const { readable, writable } = new TransformStream();
+        const writer = writable.getWriter();
+
+        // 发送请求到API端点，使用stream响应模式
+        const apiResponse = await fetch(finalEndpoint, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify(payload)
+        });
+
+        if (!apiResponse.ok) {
+          const errorText = await apiResponse.text();
+          throw new Error(`API responded with status ${apiResponse.status}: ${errorText}`);
+        }
+
+        if (!apiResponse.body) {
+          throw new Error('API response body is null');
+        }
+
+        // 处理API响应流
+        const reader = apiResponse.body.getReader();
+
+        // 开始处理流数据
+        (async () => {
+          try {
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) {
+                await writer.close();
+                break;
+              }
+
+              // 将数据块直接传递给客户端
+              await writer.write(value);
+            }
+          } catch (e) {
+            console.error('Error processing stream:', e);
+            // 写入错误消息到流
+            const encoder = new TextEncoder();
+            await writer.write(encoder.encode(`event: error\ndata: ${JSON.stringify({ error: e.message })}\n\n`));
+            await writer.close();
+          }
+        })();
+
+        // 返回流式响应
+        return createStreamResponse(readable);
+      } catch (error) {
+        console.error('Stream API request failed:', error);
+        // 如果流式请求失败，回退到常规响应
+        return NextResponse.json(
+          { error: 'Stream request failed', message: error.message },
+          { status: 500 }
+        );
+      }
+    }
+
+    // 非流式模式下的原始实现（保留原来的重试逻辑）
     let lastError;
     for (let attempt = 0; attempt <= MAX_RETRIES; attempt++) {
       try {

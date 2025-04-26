@@ -5,6 +5,9 @@ import { enhancedSearch } from './searchEnhancer';
 // 设置API请求的总超时时间，避免超出Netlify限制
 const API_TIMEOUT_MS = 45000; // 45秒，低于Netlify的60秒限制
 
+// 新增: 定义流式进度回调类型
+export type StreamCallback = (chunk: string, isDone: boolean) => void;
+
 // 修改系统提示，使用分段文本格式而不是JSON
 const SYSTEM_PROMPT = `
 你是一个专业的历史事件分析助手。我需要你将热点事件以时间轴的方式呈现。
@@ -104,6 +107,104 @@ const EVENT_DETAILS_SYSTEM_PROMPT = `你是一个专业的历史事件分析助�
 9. 当面对相互矛盾的信息时，应分析信息来源的可靠性，并明确指出哪种说法更为可信
 10. 当搜索结果不充分时，明确指出信息的局限性，避免过度推断
 `;
+
+// 新增：使用流式API请求
+export async function fetchWithStream(
+  apiUrl: string,
+  payload: any,
+  streamCallback: StreamCallback
+): Promise<void> {
+  try {
+    const response = await fetch(apiUrl, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        ...payload,
+        stream: true
+      })
+    });
+
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`API responded with status ${response.status}: ${errorText}`);
+    }
+
+    if (!response.body) {
+      throw new Error("Response body is null");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    while (true) {
+      const { done, value } = await reader.read();
+
+      if (done) {
+        // 确保处理最后一块数据
+        if (buffer.length > 0) {
+          streamCallback(buffer, true);
+        }
+        break;
+      }
+
+      // 解码此块并加入缓冲区
+      const chunk = decoder.decode(value, { stream: true });
+      buffer += chunk;
+
+      // 处理SSE格式的数据
+      const lines = buffer.split("\n\n");
+      buffer = lines.pop() || ""; // 最后一行可能不完整，保留到下一次迭代
+
+      for (const line of lines) {
+        if (line.startsWith("data: ")) {
+          try {
+            const data = line.slice(6); // 移除 "data: " 前缀
+            if (data === "[DONE]") {
+              // 流结束标记
+              streamCallback("", true);
+              return;
+            }
+
+            // 根据API的响应格式处理内容
+            // 需要根据实际的API响应格式进行调整
+            try {
+              const parsedData = JSON.parse(data);
+              const content = parsedData.choices?.[0]?.delta?.content ||
+                             parsedData.choices?.[0]?.message?.content ||
+                             "";
+              if (content) {
+                streamCallback(content, false);
+              }
+            } catch (e) {
+              // 如果不是标准JSON格式，直接传递数据
+              streamCallback(data, false);
+            }
+          } catch (e) {
+            console.error("Error parsing stream data:", e);
+          }
+        } else if (line.startsWith("event: error")) {
+          // 处理错误事件
+          const errorLine = lines.find(l => l.startsWith("data: "));
+          if (errorLine) {
+            try {
+              const errorData = JSON.parse(errorLine.slice(6));
+              throw new Error(errorData.error || "Stream error");
+            } catch (e) {
+              throw new Error("Stream error: " + errorLine);
+            }
+          } else {
+            throw new Error("Unknown stream error");
+          }
+        }
+      }
+    }
+  } catch (error) {
+    console.error("Stream request failed:", error);
+    streamCallback(`错误：${error.message}`, true);
+    throw error;
+  }
+}
 
 // 解析文本响应，转换为TimelineData格式
 function parseTimelineText(text: string): TimelineData {
@@ -415,11 +516,12 @@ function formatSearchResultsForAI(results: SearxngResult | null): string {
   return formattedText;
 }
 
-// 修改：fetchTimelineData函数，修改超时设置
+// 修改：fetchTimelineData函数，修改超时设置并添加流式处理支持
 export async function fetchTimelineData(
   query: string,
   apiConfig: ApiConfig,
-  progressCallback?: ProgressCallback
+  progressCallback?: ProgressCallback,
+  streamCallback?: StreamCallback
 ): Promise<TimelineData> {
   try {
     const { model, endpoint, apiKey } = apiConfig;
@@ -438,8 +540,14 @@ export async function fetchTimelineData(
       searchResults = await searchWithSearxng(query, apiConfig, progressCallback);
       searchContext = formatSearchResultsForAI(searchResults);
       if (progressCallback) {
-        progressCallback(`搜索完成，${searchResults && searchResults.results.length > 0 ? `获取到${searchResults.results.length}条结果` : '未找到结果'}`,
-          searchResults && searchResults.results.length > 0 ? 'completed' : 'completed');
+        progressCallback(
+          `搜索完成，${
+            searchResults && searchResults.results.length > 0
+              ? `获取到${searchResults.results.length}条结果`
+              : '未找到结果'
+          }`,
+          searchResults && searchResults.results.length > 0 ? 'completed' : 'completed'
+        );
       }
     }
 
@@ -460,10 +568,6 @@ export async function fetchTimelineData(
       temperature: 0.7
     };
 
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-
     // 检查是否是使用环境变量配置
     const isUsingEnvConfig =
       model === "使用环境变量配置" ||
@@ -474,20 +578,55 @@ export async function fetchTimelineData(
       使用环境变量: isUsingEnvConfig,
       端点: apiUrl,
       模型: model,
-      使用搜索: searchContext ? '是' : '否'
+      使用搜索: searchContext ? '是' : '否',
+      使用流式输出: streamCallback ? '是' : '否'
     });
 
-    // 设置请求超时时间为45秒，避免Netlify的504超时
-    const response = await axios.post(apiUrl, payload, {
-      headers,
-      timeout: API_TIMEOUT_MS
-    });
+    // 处理结果的变量
+    let content = "";
 
-    // 提取AI响应内容
-    const content = response.data.choices[0].message.content;
+    // 如果提供了streamCallback，使用流式处理
+    if (streamCallback) {
+      // 收集完整输出
+      let fullOutput = "";
 
-    if (progressCallback) {
-      progressCallback('AI助手已生成时间轴数据，正在处理结果', 'completed');
+      // 流式请求处理回调
+      const handleStreamChunk = (chunk: string, isDone: boolean) => {
+        // 将新的内容块添加到完整输出中
+        fullOutput += chunk;
+
+        // 传递给原始回调
+        streamCallback(chunk, isDone);
+
+        // 当完成时，标记进度为完成
+        if (isDone && progressCallback) {
+          progressCallback('AI助手已生成时间轴数据，正在处理结果', 'completed');
+        }
+      };
+
+      // 发起流式请求
+      await fetchWithStream(apiUrl, payload, handleStreamChunk);
+
+      // 使用收集的完整输出
+      content = fullOutput;
+    } else {
+      // 非流式处理：原有的实现
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+
+      // 设置请求超时时间为45秒，避免Netlify的504超时
+      const response = await axios.post(apiUrl, payload, {
+        headers,
+        timeout: API_TIMEOUT_MS
+      });
+
+      // 提取AI响应内容
+      content = response.data.choices[0].message.content;
+
+      if (progressCallback) {
+        progressCallback('AI助手已生成时间轴数据，正在处理结果', 'completed');
+      }
     }
 
     // 解析文本响应
@@ -507,12 +646,13 @@ export async function fetchTimelineData(
   }
 }
 
-// 修改：fetchEventDetails函数，修改超时设置
+// 修改：fetchEventDetails函数，修改超时设置并添加流式处理支持
 export async function fetchEventDetails(
   eventId: string,
   query: string,
   apiConfig: ApiConfig,
-  progressCallback?: ProgressCallback
+  progressCallback?: ProgressCallback,
+  streamCallback?: StreamCallback
 ): Promise<string> {
   try {
     const { model, endpoint, apiKey } = apiConfig;
@@ -555,10 +695,6 @@ export async function fetchEventDetails(
       temperature: 0.7
     };
 
-    const headers = {
-      'Content-Type': 'application/json'
-    };
-
     // 检查是否是使用环境变量配置
     const isUsingEnvConfig =
       model === "使用环境变量配置" ||
@@ -569,21 +705,58 @@ export async function fetchEventDetails(
       使用环境变量: isUsingEnvConfig,
       端点: apiUrl,
       模型: model,
-      使用搜索: searchContext ? '是' : '否'
+      使用搜索: searchContext ? '是' : '否',
+      使用流式输出: streamCallback ? '是' : '否'
     });
 
-    // 设置请求超时时间为45秒，避免Netlify的504超时
-    const response = await axios.post(apiUrl, payload, {
-      headers,
-      timeout: API_TIMEOUT_MS
-    });
+    // 处理结果的变量
+    let content = "";
 
-    if (progressCallback) {
-      progressCallback('事件详情分析完成', 'completed');
+    // 如果提供了streamCallback，使用流式处理
+    if (streamCallback) {
+      // 收集完整输出
+      let fullOutput = "";
+
+      // 流式请求处理回调
+      const handleStreamChunk = (chunk: string, isDone: boolean) => {
+        // 将新的内容块添加到完整输出中
+        fullOutput += chunk;
+
+        // 传递给原始回调
+        streamCallback(chunk, isDone);
+
+        // 当完成时，标记进度为完成
+        if (isDone && progressCallback) {
+          progressCallback('事件详情分析完成', 'completed');
+        }
+      };
+
+      // 发起流式请求
+      await fetchWithStream(apiUrl, payload, handleStreamChunk);
+
+      // 使用收集的完整输出
+      content = fullOutput;
+    } else {
+      // 非流式处理：原有的实现
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+
+      // 设置请求超时时间为45秒，避免Netlify的504超时
+      const response = await axios.post(apiUrl, payload, {
+        headers,
+        timeout: API_TIMEOUT_MS
+      });
+
+      // 提取内容
+      content = response.data.choices[0].message.content;
+
+      if (progressCallback) {
+        progressCallback('事件详情分析完成', 'completed');
+      }
     }
 
-    // 提取内容
-    return response.data.choices[0].message.content;
+    return content;
   } catch (error) {
     console.error("API request failed:", error);
     if (progressCallback) {
