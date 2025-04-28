@@ -293,28 +293,17 @@
 
 /* 热搜下拉组件样式优化 */
 .hot-search-dropdown {
-  max-height: 80vh;
+  max-height: 60vh; /* 减少最大高度，确保底部有空间 */
   overflow-y: auto;
   box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
   border: 1px solid rgba(255, 255, 255, 0.1);
   backdrop-filter: blur(10px);
+  padding-bottom: env(safe-area-inset-bottom, 16px); /* 添加安全区域内边距，兼容全面屏手机 */
 }
 
 @media (max-width: 640px) {
-  .hot-search-dropdown .grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-  }
-}
-
-@media (min-width: 641px) and (max-width: 1024px) {
-  .hot-search-dropdown .grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-  }
-}
-
-@media (min-width: 1025px) {
-  .hot-search-dropdown .grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) !important;
+  .hot-search-dropdown {
+    max-height: 50vh; /* 在手机上进一步减少高度 */
   }
 }
 

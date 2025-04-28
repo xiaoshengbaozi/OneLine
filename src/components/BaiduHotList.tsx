@@ -70,17 +70,17 @@ export function BaiduHotList({ onSelectHotItem, onClose, visible }: BaiduHotList
             </div>
           ) : (
             <ScrollArea className="h-80 px-4 pb-4">
-              <ul className="space-y-2">
+              <ul className="space-y-4">
                 {hotItems.map((item, index) => (
                   <li key={index} className="hot-item">
                     <Button
                       variant="ghost"
-                      className="w-full justify-start text-left rounded-lg hover:bg-primary/10 py-2 px-3 h-auto"
+                      className="w-full justify-start text-left rounded-lg hover:bg-primary/10 py-3 px-4 h-auto"
                       onClick={() => onSelectHotItem(item.title)}
                     >
-                      <span className="hot-rank mr-3">{index + 1}</span>
-                      <span className="hot-title flex-1 text-sm">{item.title}</span>
-                      <span className="hot-value text-xs text-muted-foreground">{item.hot}</span>
+                      <span className="hot-rank mr-4">{index + 1}</span>
+                      <span className="hot-title flex-1 text-base font-medium">{item.title}</span>
+                      <span className="hot-value text-sm text-muted-foreground ml-4">{item.hot}</span>
                     </Button>
                   </li>
                 ))}
@@ -94,11 +94,11 @@ export function BaiduHotList({ onSelectHotItem, onClose, visible }: BaiduHotList
           display: inline-flex;
           align-items: center;
           justify-content: center;
-          font-size: 0.75rem;
-          font-weight: 600;
-          width: 1.5rem;
-          height: 1.5rem;
-          border-radius: 0.375rem;
+          font-size: 1rem;
+          font-weight: 700;
+          width: 2rem;
+          height: 2rem;
+          border-radius: 0.5rem;
         }
 
         .hot-item:nth-child(1) .hot-rank {

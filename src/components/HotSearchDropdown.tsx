@@ -82,7 +82,7 @@ export function HotSearchDropdown({ onSelectHotItem, visible }: HotSearchDropdow
             {error}
           </div>
         ) : (
-          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-1.5">
+          <div className="grid grid-cols-1 gap-1.5">
             {displayedItems.map((item, index) => (
               <div
                 key={index}
@@ -104,11 +104,11 @@ export function HotSearchDropdown({ onSelectHotItem, visible }: HotSearchDropdow
         )}
 
         {hotItems.length > defaultDisplayCount && (
-          <div className="text-center mt-3 pb-1">
+          <div className="text-center mt-3 pb-4">
             <Button
-              variant="ghost"
+              variant="outline"
               size="sm"
-              className="text-xs rounded-full h-7 px-3"
+              className="text-xs rounded-full h-8 px-4 mb-4 bg-background/70 shadow-sm"
               onClick={() => setExpanded(!expanded)}
             >
               {expanded ? (
