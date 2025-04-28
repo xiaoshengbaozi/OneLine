@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef, MutableRefObject } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Timeline } from '@/components/Timeline';
@@ -18,6 +18,7 @@ import type { TimelineData, TimelineEvent, DateFilterOption, DateFilterConfig } 
 import { fetchTimelineData, fetchEventDetails, type ProgressCallback, type StreamCallback } from '@/lib/api';
 import { SearchProgress, type SearchProgressStep } from '@/components/SearchProgress';
 import { BaiduHotList } from '@/components/BaiduHotList';
+import { HotSearchDropdown } from '@/components/HotSearchDropdown';
 import { toast } from 'sonner';
 import { Settings, SortDesc, SortAsc, Download, Search, ChevronDown, Flame } from 'lucide-react';
 
@@ -47,8 +48,9 @@ function MainContent() {
   const [searchProgressSteps, setSearchProgressSteps] = useState<SearchProgressStep[]>([]);
   const [searchProgressActive, setSearchProgressActive] = useState(false);
 
-  // 新增百度热搜状态
-  const [showHotList, setShowHotList] = useState(false);
+  // 热搜状态
+  const [showHotList, setShowHotList] = useState(false); // 保留原有热搜弹窗
+  const [showHotSearch, setShowHotSearch] = useState(true); // 搜索框下方热搜下拉
   const [flyingHotItem, setFlyingHotItem] = useState<{ title: string, startX: number, startY: number } | null>(null);
 
   // 进度回调函数
@@ -62,20 +64,18 @@ function MainContent() {
 
     setSearchProgressSteps(prev => [...prev, newStep]);
 
-    // 如果是错误或完成状态，不再激活
     if (status !== 'pending') {
-      // 但只更新这一步的状态，不改变整体进度条的激活状态
+      // 结束或错误时不再激活
     } else {
       setSearchProgressActive(true);
     }
   };
 
-  // 新增处理滚动的函数
   const scrollToTimeline = () => {
     if (timelineRef.current) {
       const header = document.querySelector('header');
       const headerHeight = header?.offsetHeight || 0;
-      const yOffset = -headerHeight - 20; // 额外空间
+      const yOffset = -headerHeight - 20;
       const y = timelineRef.current.getBoundingClientRect().top + window.scrollY + yOffset;
 
       window.scrollTo({
@@ -85,7 +85,7 @@ function MainContent() {
     }
   };
 
-  // 新增处理热搜点击的函数
+  // 热搜点击（兼容飞行动画）
   const handleHotItemClick = (title: string) => {
     // 获取热搜项的位置
     const hotItems = document.querySelectorAll('.hot-item');
@@ -100,18 +100,15 @@ function MainContent() {
       }
     });
 
-    // 创建飞入效果
     setFlyingHotItem({ title, startX, startY });
 
-    // 延迟设置输入值和隐藏热搜榜，以便动画完成
     setTimeout(() => {
       setQuery(title);
       setShowHotList(false);
       setFlyingHotItem(null);
+      setShowHotSearch(false); // 隐藏下拉热搜
 
-      // 延迟提交搜索
       setTimeout(() => {
-        // 自动开始搜索
         if (inputRef.current) {
           const form = inputRef.current.form;
           if (form) {
@@ -122,7 +119,6 @@ function MainContent() {
     }, 600);
   };
 
-  // Effect to show/hide the floating button when scrolling
   useEffect(() => {
     const handleScroll = () => {
       if (window.scrollY > 150) {
@@ -136,7 +132,6 @@ function MainContent() {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  // Effect to filter events based on date filter
   useEffect(() => {
     if (timelineData.events.length === 0) {
       setFilteredEvents([]);
@@ -163,56 +158,44 @@ function MainContent() {
         startDate = dateFilter.startDate;
         break;
       default:
-        // 'all' option - no filtering
         setFilteredEvents(sortEvents(timelineData.events));
         return;
     }
 
     const endDate = dateFilter.option === 'custom' ? dateFilter.endDate : undefined;
 
-    // Filter events based on date
     const filtered = timelineData.events.filter(event => {
-      // Parse the event date with various formats
       const dateParts = event.date.split('-').map(Number);
       let eventDate: Date;
 
       if (dateParts.length === 3) {
-        // Full date: YYYY-MM-DD
         eventDate = new Date(dateParts[0], dateParts[1] - 1, dateParts[2]);
       } else if (dateParts.length === 2) {
-        // Month precision: YYYY-MM
         eventDate = new Date(dateParts[0], dateParts[1] - 1, 1);
       } else if (dateParts.length === 1) {
-        // Year precision: YYYY
         eventDate = new Date(dateParts[0], 0, 1);
       } else {
-        // Invalid date format, include by default
         return true;
       }
 
       if (startDate && eventDate < startDate) {
         return false;
       }
-
       if (endDate && eventDate > endDate) {
         return false;
       }
-
       return true;
     });
 
-    // Sort the filtered events based on current sort direction
     setFilteredEvents(sortEvents(filtered));
   }, [timelineData.events, dateFilter, sortDirection]);
 
-  // 在飞行动画过程中更新CSS变量
   useEffect(() => {
     if (flyingHotItem && inputRef.current) {
       const inputRect = inputRef.current.getBoundingClientRect();
       const inputCenterX = inputRect.left + inputRect.width / 2;
       const inputCenterY = inputRect.top + inputRect.height / 2;
 
-      // 计算飞行距离
       const flyX = inputCenterX - flyingHotItem.startX;
       const flyY = inputCenterY - flyingHotItem.startY;
 
@@ -221,18 +204,30 @@ function MainContent() {
     }
   }, [flyingHotItem]);
 
-  // Function to sort events based on sort direction
+  // 自动显示热搜下拉（仅在搜索框为空且聚焦时）
+  useEffect(() => {
+    if (!query.trim()) {
+      setShowHotSearch(true);
+    }
+  }, [query]);
+
+  // 新增逻辑：只要query有内容就隐藏热搜
+  useEffect(() => {
+    if (query.trim()) {
+      setShowHotSearch(false);
+    }
+  }, [query]);
+
   const sortEvents = (events: TimelineEvent[]): TimelineEvent[] => {
     return [...events].sort((a, b) => {
-      const dateA = a.date.replace(/\D/g, ''); // Remove non-digit characters
+      const dateA = a.date.replace(/\D/g, '');
       const dateB = b.date.replace(/\D/g, '');
       return sortDirection === 'asc'
-        ? dateA.localeCompare(dateB)  // oldest first (ascending)
-        : dateB.localeCompare(dateA); // newest first (descending)
+        ? dateA.localeCompare(dateB)
+        : dateB.localeCompare(dateA);
     });
   };
 
-  // Toggle sort direction
   const toggleSortDirection = () => {
     setSortDirection(prev => prev === 'asc' ? 'desc' : 'asc');
   };
@@ -245,14 +240,12 @@ function MainContent() {
       return;
     }
 
-    // 检查API是否已配置，以及是否已通过密码验证（如果需要）
     if (!isConfigured) {
       toast.info('请先配置API设置');
       setShowSettings(true);
       return;
     }
 
-    // 如果有密码保护但未验证，提示需要验证密码
     if (isPasswordProtected && !isPasswordValidated) {
       toast.info('请先验证访问密码');
       setShowSettings(true);
@@ -261,6 +254,7 @@ function MainContent() {
 
     // 隐藏热搜榜
     setShowHotList(false);
+    setShowHotSearch(false);  // 确保搜索时隐藏热搜列表
 
     // 重置进度显示
     setSearchProgressSteps([]);
@@ -270,13 +264,10 @@ function MainContent() {
     // 如果搜索框在中央，则先将其移动到顶部
     if (searchPosition === 'center') {
       setSearchPosition('top');
-
-      // 等待动画完成后再获取数据
       setTimeout(() => {
         fetchData();
-      }, 700); // 与CSS动画持续时间匹配
+      }, 700);
     } else {
-      // 如果已经在顶部，直接获取数据
       fetchData();
     }
   };
@@ -287,7 +278,6 @@ function MainContent() {
     setTimelineVisible(false);
 
     try {
-      // Add date range to query if filter is set
       let queryWithDateFilter = query;
 
       if (dateFilter.option !== 'all') {
@@ -320,29 +310,21 @@ function MainContent() {
         queryWithDateFilter += dateRangeText;
       }
 
-      // 使用流式输出模式获取时间轴数据
       const streamCallback: StreamCallback = (chunk, isDone) => {
-        // 这里可以实现实时展示流式输出的逻辑
-        // 但是由于时间轴数据需要解析处理后才能展示，所以这里不直接展示流式输出
-        // 只在调试时使用
         console.log('收到流式数据块:', chunk.substring(0, 50) + (chunk.length > 50 ? '...' : ''));
       };
 
       const data = await fetchTimelineData(queryWithDateFilter, apiConfig, progressCallback, streamCallback);
       setTimelineData(data);
 
-      // 显示时间轴，添加动画延迟
       setTimeout(() => {
         setTimelineVisible(true);
-        // 滚动到时间轴
         if (data.events.length > 0) {
           setTimeout(scrollToTimeline, 300);
         }
 
-        // 标记进度显示为非活动状态，但仍然保持可见，让用户可以查看进度历史
         setSearchProgressActive(false);
 
-        // 3秒后自动隐藏进度显示
         setTimeout(() => {
           setSearchProgressVisible(false);
         }, 3000);
@@ -358,14 +340,12 @@ function MainContent() {
       toast.error(errorMessage);
       console.error('Error fetching timeline data:', err);
 
-      // 出错时也标记为非活动状态
       setSearchProgressActive(false);
     } finally {
       setIsLoading(false);
     }
   };
 
-  // Format date for API query
   const formatDate = (date: Date | undefined): string => {
     if (!date) return '';
     return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
@@ -373,7 +353,6 @@ function MainContent() {
 
   const handleDateFilterChange = (value: DateFilterOption) => {
     if (value === 'custom') {
-      // For custom date range, set both start and end dates if they haven't been set yet
       setDateFilter({
         option: value,
         startDate: startDate ? new Date(startDate) : undefined,
@@ -404,32 +383,26 @@ function MainContent() {
     }
   };
 
-  // 支持流式输出的详情请求
   const handleRequestDetails = async (event: TimelineEvent, streamCallback?: StreamCallback): Promise<string> => {
-    // 检查API是否已配置，以及是否已通过密码验证（如果需要）
     if (!isConfigured) {
       toast.info('请先配置API设置');
       setShowSettings(true);
       return '请先配置API设置';
     }
 
-    // 如果有密码保护但未验证，提示需要验证密码
     if (isPasswordProtected && !isPasswordValidated) {
       toast.info('请先验证访问密码');
       setShowSettings(true);
       return '请先验证访问密码';
     }
 
-    // 显示进度条
     setSearchProgressSteps([]);
     setSearchProgressActive(true);
     setSearchProgressVisible(true);
 
     try {
-      // 构建更具体的查询，包含事件日期和标题，添加更详细的分析指导
       const detailedQuery = `事件：${event.title}（${event.date}）\n\n请提供该事件的详细分析，包括事件背景、主要过程、关键人物、影响与意义。请尽可能提供多方观点，并分析该事件在${query}整体发展中的位置与作用。`;
 
-      // 使用流式输出获取事件详情
       const detailsContent = await fetchEventDetails(
         event.id,
         detailedQuery,
@@ -438,7 +411,6 @@ function MainContent() {
         streamCallback
       );
 
-      // 3秒后自动隐藏进度显示
       setTimeout(() => {
         setSearchProgressVisible(false);
         setSearchProgressActive(false);
@@ -456,14 +428,12 @@ function MainContent() {
     }
   };
 
-  // Function to export timeline as image
   const exportAsImage = () => {
     if (filteredEvents.length === 0) {
       toast.warning('没有可导出的内容');
       return;
     }
 
-    // Use html2canvas library
     import('html2canvas').then(({ default: html2canvas }) => {
       const timelineElement = document.querySelector('.timeline-container') as HTMLElement;
       if (!timelineElement) {
@@ -474,13 +444,12 @@ function MainContent() {
       toast.info('正在生成图片，请稍候...');
 
       html2canvas(timelineElement, {
-        scale: 2, // Higher scale for better quality
+        scale: 2,
         logging: false,
         useCORS: true,
         allowTaint: true,
         backgroundColor: '#ffffff'
       }).then(canvas => {
-        // Convert to image and download
         const fileName = `一线-${query.replace(/\s+/g, '-')}-${new Date().toISOString().slice(0, 10)}.png`;
         const link = document.createElement('a');
         link.download = fileName;
@@ -498,7 +467,7 @@ function MainContent() {
     });
   };
 
-  // 新增热搜按钮点击处理函数
+  // 保留弹窗热搜榜切换函数（兼容旧逻辑）
   const toggleHotList = () => {
     setShowHotList(prev => !prev);
   };
@@ -548,20 +517,12 @@ function MainContent() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/70"
+              onFocus={() => { if (!query.trim()) setShowHotSearch(true); }}
+              // 取消onBlur事件，避免用户无法点击热搜项
             />
 
             <div className="flex items-center">
-              <Button
-                type="button"
-                variant="ghost"
-                size="icon"
-                onClick={toggleHotList}
-                className="h-8 w-8 mr-1"
-                title="百度热搜榜"
-              >
-                <Flame size={16} className="text-red-500" />
-              </Button>
-
+              {/* 移除热搜榜按钮，热搜自动显示在下方 */}
               <Select
                 value={dateFilter.option}
                 onValueChange={handleDateFilterChange as (value: string) => void}
@@ -627,10 +588,18 @@ function MainContent() {
               </div>
             </div>
           )}
+
+          {/* 热搜下拉列表 - 在搜索框下方显示 */}
+          <div className="w-full max-w-3xl mx-auto relative z-30">
+            <HotSearchDropdown
+              visible={searchPosition === 'center' && showHotSearch && !isLoading}
+              onSelectHotItem={handleHotItemClick}
+            />
+          </div>
         </div>
       </form>
 
-      {/* 百度热搜榜 */}
+      {/* 保留原来的百度热搜榜弹窗，以便保留兼容性 */}
       <BaiduHotList
         visible={showHotList}
         onClose={() => setShowHotList(false)}
@@ -651,7 +620,7 @@ function MainContent() {
         </div>
       )}
 
-      {/* 搜索进度显示 - 独立于表单，放在搜索表单下方 */}
+      {/* 搜索进度显示 */}
       <div className={`w-full max-w-3xl mx-auto px-4 transition-opacity duration-300 ${searchProgressVisible ? 'opacity-100' : 'opacity-0'}`}
            style={{marginTop: searchPosition === 'center' ? "calc(50vh + 180px)" : "80px", zIndex: 15}}>
         <SearchProgress
