@@ -621,8 +621,8 @@ function MainContent() {
       )}
 
       {/* 搜索进度显示 */}
-      <div className={`w-full max-w-3xl mx-auto px-4 transition-opacity duration-300 ${searchProgressVisible ? 'opacity-100' : 'opacity-0'}`}
-           style={{marginTop: searchPosition === 'center' ? "calc(50vh + 180px)" : "80px", zIndex: 15}}>
+      <div className={`fixed bottom-4 left-0 right-0 w-full max-w-3xl mx-auto px-4 transition-opacity duration-300 ${searchProgressVisible ? 'opacity-100' : 'opacity-0'}`}
+           style={{zIndex: 40}}>
         <SearchProgress
           steps={searchProgressSteps}
           visible={searchProgressVisible}

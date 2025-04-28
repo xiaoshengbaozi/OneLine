@@ -85,7 +85,9 @@ export function validateAccessPassword(password: string): boolean {
 
 // 获取环境变量中的SearXNG URL
 export function getEnvSearxngUrl(): string | undefined {
-  return process.env.NEXT_PUBLIC_SEARXNG_URL;
+  const url = process.env.NEXT_PUBLIC_SEARXNG_URL;
+  // 如果环境变量中的URL为空，则返回undefined，由应用使用默认值
+  return url && url.trim() !== '' ? url : undefined;
 }
 
 // 获取环境变量中的SearXNG启用状态
