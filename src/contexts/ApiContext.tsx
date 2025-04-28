@@ -134,6 +134,7 @@ export function ApiProvider({ children }: { children: React.ReactNode }) {
         const storedUseEnvConfig = localStorage.getItem('oneLine_useEnvConfig');
         if (storedUseEnvConfig !== null) {
           shouldUseEnvConfig = storedUseEnvConfig === 'true';
+          console.log('从localStorage加载环境变量配置选择:', { shouldUseEnvConfig });
         }
       }
 

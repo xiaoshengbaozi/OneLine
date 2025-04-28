@@ -72,7 +72,19 @@ export function ApiSettings({ open, onOpenChange }: ApiSettingsProps) {
   // Update local state when apiConfig changes or dialog opens
   useEffect(() => {
     if (open) {
-      setIsEnvConfigActive(useEnvConfig);
+      // 从 localStorage 获取最新的环境变量配置选择状态
+      if (typeof window !== 'undefined') {
+        const storedUseEnvConfig = localStorage.getItem('oneLine_useEnvConfig');
+        // 如果存在存储的状态，使用它；否则使用当前上下文中的状态
+        if (storedUseEnvConfig !== null) {
+          const shouldUseEnvConfig = storedUseEnvConfig === 'true';
+          setIsEnvConfigActive(shouldUseEnvConfig);
+        } else {
+          setIsEnvConfigActive(useEnvConfig);
+        }
+      } else {
+        setIsEnvConfigActive(useEnvConfig);
+      }
 
       if (useEnvConfig && hasEnvConfig) {
         setEndpoint('');
@@ -124,6 +136,11 @@ export function ApiSettings({ open, onOpenChange }: ApiSettingsProps) {
     const newState = !isEnvConfigActive;
     setIsEnvConfigActive(newState);
     setUseEnvConfig(newState);
+
+    // 直接保存到localStorage，确保设置持久化
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('oneLine_useEnvConfig', newState.toString());
+    }
 
     setError('');
   };
@@ -226,9 +243,19 @@ export function ApiSettings({ open, onOpenChange }: ApiSettingsProps) {
     }
 
     if (isEnvConfigActive && hasEnvConfig) {
+      // 确保保存SearXNG配置的同时也更新环境变量配置选择
       updateApiConfig({
         searxng: searxngConfig
       });
+
+      // 确保两边设置都是同步的
+      setUseEnvConfig(true);
+
+      // 直接存储到localStorage，以防ApiContext中的逻辑未执行
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('oneLine_useEnvConfig', 'true');
+      }
+
       onOpenChange(false);
       return;
     }
@@ -267,6 +294,14 @@ export function ApiSettings({ open, onOpenChange }: ApiSettingsProps) {
       apiKey: apiKey.trim(),
       searxng: searxngConfig
     });
+
+    // 确保两边设置都是同步的
+    setUseEnvConfig(false);
+
+    // 直接存储到localStorage，以防ApiContext中的逻辑未执行
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('oneLine_useEnvConfig', 'false');
+    }
 
     onOpenChange(false);
   };
