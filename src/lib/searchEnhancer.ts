@@ -562,9 +562,18 @@ export async function enhancedSearch(
   apiConfig: ApiConfig,
   progressCallback?: ProgressCallback
 ): Promise<SearxngResult | null> {
-  // 检查是否启用SearXNG
-  if (!apiConfig.searxng?.enabled || !apiConfig.searxng?.url) {
-    console.log('SearXNG搜索未启用或URL未配置');
+  // 检查是否启用SearXNG，考虑到自动启用的逻辑
+  if (!apiConfig.searxng) {
+    console.log('SearXNG搜索未配置');
+    return null;
+  }
+
+  // 如果明确禁用 或 没有配置URL，则不执行搜索
+  if (apiConfig.searxng.enabled === false || !apiConfig.searxng.url) {
+    console.log('SearXNG搜索未启用或URL未配置', {
+      enabled: apiConfig.searxng.enabled,
+      url: apiConfig.searxng.url
+    });
     return null;
   }
 

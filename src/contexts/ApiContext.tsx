@@ -86,7 +86,9 @@ export function ApiProvider({ children }: { children: React.ReactNode }) {
         envEndpoint: envEndpoint ? '已设置' : '未设置',
         envApiKey: envApiKey ? '已设置' : '未设置',
         isClientSide: typeof window !== 'undefined',
-        envConfigStatus: process.env.NEXT_PUBLIC_HAS_SERVER_CONFIG
+        envConfigStatus: process.env.NEXT_PUBLIC_HAS_SERVER_CONFIG,
+        envSearxngUrl: envSearxngUrl ? '已设置' : '未设置',
+        envSearxngEnabled
       });
 
       // 设置是否启用密码保护
@@ -156,7 +158,8 @@ export function ApiProvider({ children }: { children: React.ReactNode }) {
           accessPassword: envAccessPassword || '',
           searxng: {
             url: envSearxngUrl || 'https://sousuo.emoe.top',
-            enabled: envSearxngEnabled,
+            // 如果NEXT_PUBLIC_SEARXNG_URL已设置，则自动启用SearXNG，即使NEXT_PUBLIC_SEARXNG_ENABLED未设置
+            enabled: envSearxngEnabled || (!!envSearxngUrl && envSearxngUrl.trim() !== ''),
             categories: 'general',
             language: 'zh',
             timeRange: 'year',

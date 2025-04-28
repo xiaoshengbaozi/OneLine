@@ -92,5 +92,12 @@ export function getEnvSearxngUrl(): string | undefined {
 
 // 获取环境变量中的SearXNG启用状态
 export function getEnvSearxngEnabled(): boolean {
-  return process.env.NEXT_PUBLIC_SEARXNG_ENABLED === 'true';
+  // 如果NEXT_PUBLIC_SEARXNG_ENABLED明确设置为'true'，则返回true
+  if (process.env.NEXT_PUBLIC_SEARXNG_ENABLED === 'true') {
+    return true;
+  }
+
+  // 如果NEXT_PUBLIC_SEARXNG_URL已设置且不为空，则自动启用SearXNG
+  const url = process.env.NEXT_PUBLIC_SEARXNG_URL;
+  return (url !== undefined && url.trim() !== '');
 }

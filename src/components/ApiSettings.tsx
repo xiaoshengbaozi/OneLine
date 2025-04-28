@@ -100,8 +100,19 @@ export function ApiSettings({ open, onOpenChange }: ApiSettingsProps) {
       setError('');
 
       // 更新效果，初始化SearXNG配置
+      // Respect auto-enabling/disabling when environment variable is set
+      let effectiveSearxng: SearxngConfig = {
+        url: 'https://sousuo.emoe.top',
+        enabled: true,
+        categories: 'general,news',
+        language: 'zh',
+        timeRange: 'year',
+        numResults: 5,
+        engines: [...engineCategories['通用搜索'], ...engineCategories['新闻']]
+      };
+
       if (apiConfig.searxng) {
-        setSearxngConfig({
+        effectiveSearxng = {
           url: apiConfig.searxng.url || 'https://sousuo.emoe.top',
           enabled: typeof apiConfig.searxng.enabled === 'boolean' ? apiConfig.searxng.enabled : true,
           categories: apiConfig.searxng.categories || 'general,news',
@@ -111,8 +122,15 @@ export function ApiSettings({ open, onOpenChange }: ApiSettingsProps) {
           engines: apiConfig.searxng.engines && apiConfig.searxng.engines.length > 0
             ? apiConfig.searxng.engines
             : [...engineCategories['通用搜索'], ...engineCategories['新闻']]
-        });
+        };
       }
+
+      // 如果环境变量配置有 SearXNG 并且 enabled 字段为 false，则禁用
+      if (useEnvConfig && hasEnvConfig && apiConfig.searxng && typeof apiConfig.searxng.enabled === 'boolean') {
+        effectiveSearxng.enabled = apiConfig.searxng.enabled;
+      }
+
+      setSearxngConfig(effectiveSearxng);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [apiConfig, open, useEnvConfig, hasEnvConfig]);
