@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, MutableRefObject } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Timeline } from '@/components/Timeline';
@@ -17,8 +17,9 @@ import {
 import type { TimelineData, TimelineEvent, DateFilterOption, DateFilterConfig } from '@/types';
 import { fetchTimelineData, fetchEventDetails, type ProgressCallback, type StreamCallback } from '@/lib/api';
 import { SearchProgress, type SearchProgressStep } from '@/components/SearchProgress';
+import { BaiduHotList } from '@/components/BaiduHotList';
 import { toast } from 'sonner';
-import { Settings, SortDesc, SortAsc, Download, Search, ChevronDown } from 'lucide-react';
+import { Settings, SortDesc, SortAsc, Download, Search, ChevronDown, Flame } from 'lucide-react';
 
 function MainContent() {
   const { apiConfig, isConfigured, isPasswordProtected, isPasswordValidated } = useApi();
@@ -39,11 +40,16 @@ function MainContent() {
   const [timelineVisible, setTimelineVisible] = useState(false);
   const searchRef = useRef<HTMLFormElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
 
   // 新增进度状态
   const [searchProgressVisible, setSearchProgressVisible] = useState(false);
   const [searchProgressSteps, setSearchProgressSteps] = useState<SearchProgressStep[]>([]);
   const [searchProgressActive, setSearchProgressActive] = useState(false);
+
+  // 新增百度热搜状态
+  const [showHotList, setShowHotList] = useState(false);
+  const [flyingHotItem, setFlyingHotItem] = useState<{ title: string, startX: number, startY: number } | null>(null);
 
   // 进度回调函数
   const progressCallback: ProgressCallback = (message, status) => {
@@ -77,6 +83,43 @@ function MainContent() {
         behavior: 'smooth'
       });
     }
+  };
+
+  // 新增处理热搜点击的函数
+  const handleHotItemClick = (title: string) => {
+    // 获取热搜项的位置
+    const hotItems = document.querySelectorAll('.hot-item');
+    let startX = 0;
+    let startY = 0;
+
+    hotItems.forEach((item) => {
+      if (item.textContent?.includes(title)) {
+        const rect = item.getBoundingClientRect();
+        startX = rect.left + rect.width / 2;
+        startY = rect.top + rect.height / 2;
+      }
+    });
+
+    // 创建飞入效果
+    setFlyingHotItem({ title, startX, startY });
+
+    // 延迟设置输入值和隐藏热搜榜，以便动画完成
+    setTimeout(() => {
+      setQuery(title);
+      setShowHotList(false);
+      setFlyingHotItem(null);
+
+      // 延迟提交搜索
+      setTimeout(() => {
+        // 自动开始搜索
+        if (inputRef.current) {
+          const form = inputRef.current.form;
+          if (form) {
+            form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+          }
+        }
+      }, 300);
+    }, 600);
   };
 
   // Effect to show/hide the floating button when scrolling
@@ -162,6 +205,22 @@ function MainContent() {
     setFilteredEvents(sortEvents(filtered));
   }, [timelineData.events, dateFilter, sortDirection]);
 
+  // 在飞行动画过程中更新CSS变量
+  useEffect(() => {
+    if (flyingHotItem && inputRef.current) {
+      const inputRect = inputRef.current.getBoundingClientRect();
+      const inputCenterX = inputRect.left + inputRect.width / 2;
+      const inputCenterY = inputRect.top + inputRect.height / 2;
+
+      // 计算飞行距离
+      const flyX = inputCenterX - flyingHotItem.startX;
+      const flyY = inputCenterY - flyingHotItem.startY;
+
+      document.documentElement.style.setProperty('--fly-x', `${flyX}px`);
+      document.documentElement.style.setProperty('--fly-y', `${flyY}px`);
+    }
+  }, [flyingHotItem]);
+
   // Function to sort events based on sort direction
   const sortEvents = (events: TimelineEvent[]): TimelineEvent[] => {
     return [...events].sort((a, b) => {
@@ -199,6 +258,9 @@ function MainContent() {
       setShowSettings(true);
       return;
     }
+
+    // 隐藏热搜榜
+    setShowHotList(false);
 
     // 重置进度显示
     setSearchProgressSteps([]);
@@ -436,6 +498,11 @@ function MainContent() {
     });
   };
 
+  // 新增热搜按钮点击处理函数
+  const toggleHotList = () => {
+    setShowHotList(prev => !prev);
+  };
+
   return (
     <main className="flex min-h-screen flex-col relative">
       {/* 背景渐变装饰 */}
@@ -475,6 +542,7 @@ function MainContent() {
         <div className="p-4 w-full">
           <div className="glass-card rounded-full overflow-hidden flex items-center p-1 pr-2">
             <Input
+              ref={inputRef}
               type="text"
               placeholder="输入关键词，如：俄乌冲突、中美贸易..."
               value={query}
@@ -483,6 +551,17 @@ function MainContent() {
             />
 
             <div className="flex items-center">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon"
+                onClick={toggleHotList}
+                className="h-8 w-8 mr-1"
+                title="百度热搜榜"
+              >
+                <Flame size={16} className="text-red-500" />
+              </Button>
+
               <Select
                 value={dateFilter.option}
                 onValueChange={handleDateFilterChange as (value: string) => void}
@@ -550,6 +629,27 @@ function MainContent() {
           )}
         </div>
       </form>
+
+      {/* 百度热搜榜 */}
+      <BaiduHotList
+        visible={showHotList}
+        onClose={() => setShowHotList(false)}
+        onSelectHotItem={handleHotItemClick}
+      />
+
+      {/* 飞行热搜项 */}
+      {flyingHotItem && (
+        <div
+          className="fixed z-50 fly-to-input bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-sm font-medium"
+          style={{
+            left: flyingHotItem.startX,
+            top: flyingHotItem.startY,
+            transform: 'translate(-50%, -50%)'
+          }}
+        >
+          {flyingHotItem.title}
+        </div>
+      )}
 
       {/* 搜索进度显示 - 独立于表单，放在搜索表单下方 */}
       <div className={`w-full max-w-3xl mx-auto px-4 transition-opacity duration-300 ${searchProgressVisible ? 'opacity-100' : 'opacity-0'}`}
