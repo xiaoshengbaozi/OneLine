@@ -64,6 +64,12 @@ NEXT_PUBLIC_ALLOW_USER_CONFIG=true
 # 设置后，用户需要输入正确的密码才能访问API设置
 # 这可以避免API被滥用，增强应用安全性
 NEXT_PUBLIC_ACCESS_PASSWORD=your_access_password_here
+
+# SearXNG搜索配置
+# SearXNG搜索服务URL，留空则使用默认值
+NEXT_PUBLIC_SEARXNG_URL=https://sousuo.emoe.top
+# 是否默认启用SearXNG搜索服务
+NEXT_PUBLIC_SEARXNG_ENABLED=true
 ```
 
 **注意事项：**
@@ -72,6 +78,8 @@ NEXT_PUBLIC_ACCESS_PASSWORD=your_access_password_here
 - 当`NEXT_PUBLIC_ALLOW_USER_CONFIG`设置为`false`时，用户将无法在前端修改API设置
 - 当设置了`NEXT_PUBLIC_ACCESS_PASSWORD`时，用户需要输入正确的密码才能访问API设置
 - 当未设置环境变量时，将使用前端用户配置的设置
+- 新增的`NEXT_PUBLIC_SEARXNG_URL`用于配置SearXNG搜索服务的URL，若留空则使用默认地址
+- `NEXT_PUBLIC_SEARXNG_ENABLED`用于控制是否默认启用SearXNG搜索服务，设置为`true`启用，`false`禁用
 
 ### Vercel 部署注意事项
 
