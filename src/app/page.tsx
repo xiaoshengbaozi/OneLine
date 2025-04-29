@@ -53,6 +53,10 @@ function MainContent() {
   const [showHotSearch, setShowHotSearch] = useState(true); // 搜索框下方热搜下拉
   const [flyingHotItem, setFlyingHotItem] = useState<{ title: string, startX: number, startY: number } | null>(null);
 
+  // 新增搜索耗时和结果数状态
+  const [searchStartTime, setSearchStartTime] = useState<number | null>(null);
+  const [searchTimeElapsed, setSearchTimeElapsed] = useState<number | null>(null);
+
   // 进度回调函数
   const progressCallback: ProgressCallback = (message, status) => {
     const newStep: SearchProgressStep = {
@@ -261,6 +265,10 @@ function MainContent() {
     setSearchProgressActive(true);
     setSearchProgressVisible(true);
 
+    // 记录搜索开始时间
+    setSearchStartTime(Date.now());
+    setSearchTimeElapsed(null);
+
     // 如果搜索框在中央，则先将其移动到顶部
     if (searchPosition === 'center') {
       setSearchPosition('top');
@@ -317,6 +325,11 @@ function MainContent() {
       const data = await fetchTimelineData(queryWithDateFilter, apiConfig, progressCallback, streamCallback);
       setTimelineData(data);
 
+      // 计算搜索耗时
+      if (searchStartTime) {
+        setSearchTimeElapsed(Date.now() - searchStartTime);
+      }
+
       setTimeout(() => {
         setTimelineVisible(true);
         if (data.events.length > 0) {
@@ -325,9 +338,10 @@ function MainContent() {
 
         setSearchProgressActive(false);
 
-        setTimeout(() => {
-          setSearchProgressVisible(false);
-        }, 3000);
+        // 不再自动隐藏搜索进度框
+        // setTimeout(() => {
+        //   setSearchProgressVisible(false);
+        // }, 3000);
 
       }, 300);
 
@@ -341,6 +355,11 @@ function MainContent() {
       console.error('Error fetching timeline data:', err);
 
       setSearchProgressActive(false);
+
+      // 计算搜索耗时(即使出错)
+      if (searchStartTime) {
+        setSearchTimeElapsed(Date.now() - searchStartTime);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -400,6 +419,10 @@ function MainContent() {
     setSearchProgressActive(true);
     setSearchProgressVisible(true);
 
+    // 记录搜索开始时间
+    setSearchStartTime(Date.now());
+    setSearchTimeElapsed(null);
+
     try {
       const detailedQuery = `事件：${event.title}（${event.date}）\n\n请提供该事件的详细分析，包括事件背景、主要过程、关键人物、影响与意义。请尽可能提供多方观点，并分析该事件在${query}整体发展中的位置与作用。`;
 
@@ -411,10 +434,16 @@ function MainContent() {
         streamCallback
       );
 
+      // 计算搜索耗时
+      if (searchStartTime) {
+        setSearchTimeElapsed(Date.now() - searchStartTime);
+      }
+
+      // 不自动隐藏进度
       setTimeout(() => {
-        setSearchProgressVisible(false);
+        // setSearchProgressVisible(false);
         setSearchProgressActive(false);
-      }, 3000);
+      }, 1000);
 
       return detailsContent;
     } catch (err: unknown) {
@@ -423,6 +452,11 @@ function MainContent() {
       console.error('Error fetching event details:', err);
 
       setSearchProgressActive(false);
+
+      // 计算搜索耗时(即使出错)
+      if (searchStartTime) {
+        setSearchTimeElapsed(Date.now() - searchStartTime);
+      }
 
       return '获取详细信息失败，请稍后再试';
     }
@@ -596,6 +630,17 @@ function MainContent() {
               onSelectHotItem={handleHotItemClick}
             />
           </div>
+
+          {/* 搜索进度显示 - 移到输入框下方 */}
+          <div className="w-full max-w-3xl mx-auto mt-4 transition-all duration-300">
+            <SearchProgress
+              steps={searchProgressSteps}
+              visible={searchProgressVisible}
+              isActive={searchProgressActive}
+              timeElapsed={searchTimeElapsed || undefined}
+              resultCount={filteredEvents.length || undefined}
+            />
+          </div>
         </div>
       </form>
 
@@ -620,15 +665,15 @@ function MainContent() {
         </div>
       )}
 
-      {/* 搜索进度显示 */}
-      <div className={`fixed bottom-4 left-0 right-0 w-full max-w-3xl mx-auto px-4 transition-opacity duration-300 ${searchProgressVisible ? 'opacity-100' : 'opacity-0'}`}
+      {/* 移除原有位置的搜索进度显示 */}
+      {/* <div className={`fixed bottom-4 left-0 right-0 w-full max-w-3xl mx-auto px-4 transition-opacity duration-300 ${searchProgressVisible ? 'opacity-100' : 'opacity-0'}`}
            style={{zIndex: 40}}>
         <SearchProgress
           steps={searchProgressSteps}
           visible={searchProgressVisible}
           isActive={searchProgressActive}
         />
-      </div>
+      </div> */}
 
       {/* 时间轴容器 */}
       <div className="flex-1 pt-24 pb-12 px-4 md:px-8 w-full max-w-6xl mx-auto">
