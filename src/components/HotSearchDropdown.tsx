@@ -45,7 +45,7 @@ export function HotSearchDropdown({ onSelectHotItem, visible }: HotSearchDropdow
     }
   }, [visible]);
 
-  // 重置展开状态
+  // 重置展开状态，但保留可见性
   useEffect(() => {
     if (!visible) {
       setExpanded(false);

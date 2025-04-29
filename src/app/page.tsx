@@ -215,12 +215,19 @@ function MainContent() {
     }
   }, [query]);
 
-  // 新增逻辑：只要query有内容就隐藏热搜
+  // 优化逻辑：只要query有内容就隐藏热搜
   useEffect(() => {
     if (query.trim()) {
       setShowHotSearch(false);
     }
   }, [query]);
+
+  // 有搜索结果时隐藏热搜
+  useEffect(() => {
+    if (timelineVisible && timelineData.events.length > 0) {
+      setShowHotSearch(false);
+    }
+  }, [timelineVisible, timelineData.events.length]);
 
   const sortEvents = (events: TimelineEvent[]): TimelineEvent[] => {
     return [...events].sort((a, b) => {
@@ -283,7 +290,11 @@ function MainContent() {
   const fetchData = async () => {
     setIsLoading(true);
     setError('');
-    setTimelineVisible(false);
+    // 仅在第一次搜索时才设置timelineVisible为false
+    // 如果已经有搜索结果，则保持timelineVisible不变
+    if (timelineData.events.length === 0) {
+      setTimelineVisible(false);
+    }
 
     try {
       let queryWithDateFilter = query;
@@ -623,16 +634,16 @@ function MainContent() {
             </div>
           )}
 
-          {/* 热搜下拉列表 - 在搜索框下方显示 */}
-          <div className="w-full max-w-3xl mx-auto relative z-30">
+          {/* 热搜下拉列表 - 在搜索框下方显示，确保不会因为展开而影响已生成内容 */}
+          <div className="w-full mx-auto relative z-30">
             <HotSearchDropdown
-              visible={searchPosition === 'center' && showHotSearch && !isLoading}
+              visible={searchPosition === 'center' && showHotSearch && !isLoading && !timelineVisible}
               onSelectHotItem={handleHotItemClick}
             />
           </div>
 
-          {/* 搜索进度显示 - 移到输入框下方 */}
-          <div className="w-full max-w-3xl mx-auto mt-4 transition-all duration-300">
+          {/* 搜索进度显示 - 移到输入框下方，宽度与搜索框对齐 */}
+          <div className="w-full mx-auto mt-4 transition-all duration-300">
             <SearchProgress
               steps={searchProgressSteps}
               visible={searchProgressVisible}
@@ -675,8 +686,8 @@ function MainContent() {
         />
       </div> */}
 
-      {/* 时间轴容器 */}
-      <div className="flex-1 pt-24 pb-12 px-4 md:px-8 w-full max-w-6xl mx-auto">
+      {/* 时间轴容器 - 调整了距离顶部的间距，使其在搜索栏展开时仍然可见 */}
+      <div className="flex-1 pt-28 pb-12 px-4 md:px-8 w-full max-w-6xl mx-auto">
         {(timelineVisible || isLoading) && (
           <div
             ref={timelineRef}

@@ -163,11 +163,12 @@
 
 /* 搜索进度组件样式 */
 .search-progress-card {
-  @apply glass-card rounded-xl overflow-hidden z-20 w-full max-w-md mx-auto;
+  @apply glass-card rounded-xl overflow-hidden z-20 w-full max-w-3xl mx-auto;
   transition: all 0.3s ease;
   transform-origin: top center;
   animation: fadeSlideDown 0.3s ease;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.1);
+  width: 100%; /* 确保宽度与搜索框一致 */
 }
 
 @keyframes fadeSlideDown {
@@ -185,6 +186,14 @@
 @media (max-width: 640px) {
   .search-progress-card {
     @apply mx-2;
+    max-width: calc(100% - 1rem); /* 确保不超出屏幕，留出边距 */
+  }
+
+  /* 确保热搜下拉菜单适应移动端 */
+  .hot-search-dropdown {
+    width: calc(100% - 1rem);
+    margin-left: auto;
+    margin-right: auto;
   }
 }
 
@@ -192,6 +201,11 @@
 @media (max-width: 480px) {
   .search-container-top .search-progress-card {
     @apply mt-2;
+  }
+
+  /* 移动端搜索结果显示优化 */
+  .timeline-container {
+    @apply mt-16; /* 减少搜索结果到顶部的距离 */
   }
 }
 

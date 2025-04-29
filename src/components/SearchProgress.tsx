@@ -32,13 +32,13 @@ export function SearchProgress({ steps, visible, isActive, timeElapsed, resultCo
     }
   }, [steps, isCollapsed]);
 
-  // 搜索完成后自动折叠
+  // 搜索完成后自动折叠，但确保用户仍可手动展开
   useEffect(() => {
     if (!isActive && steps.length > 0) {
-      // 搜索完成后1秒折叠
+      // 搜索完成后2秒折叠，给用户留出更多时间查看进度
       const timer = setTimeout(() => {
         setIsCollapsed(true);
-      }, 1000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
   }, [isActive, steps.length]);
@@ -80,7 +80,7 @@ export function SearchProgress({ steps, visible, isActive, timeElapsed, resultCo
               variant="ghost"
               size="sm"
               onClick={() => setIsCollapsed(false)}
-              className="h-7 w-7 p-0 rounded-full"
+              className="h-7 w-7 p-0 rounded-full hover:bg-primary/10"
             >
               <ChevronDownIcon className="h-4 w-4" />
               <span className="sr-only">展开</span>
