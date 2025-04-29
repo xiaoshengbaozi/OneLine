@@ -161,6 +161,54 @@
   }
 }
 
+/* 搜索进度组件样式 */
+.search-progress-card {
+  @apply glass-card rounded-xl overflow-hidden z-20 w-full max-w-3xl mx-auto;
+  transition: all 0.3s ease;
+  transform-origin: top center;
+  animation: fadeSlideDown 0.3s ease;
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12), 0 0 1px rgba(0, 0, 0, 0.1);
+  width: 100%; /* 确保宽度与搜索框一致 */
+}
+
+@keyframes fadeSlideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 移动端适配 */
+@media (max-width: 640px) {
+  .search-progress-card {
+    @apply mx-2;
+    max-width: calc(100% - 1rem); /* 确保不超出屏幕，留出边距 */
+  }
+
+  /* 确保热搜下拉菜单适应移动端 */
+  .hot-search-dropdown {
+    width: calc(100% - 1rem);
+    margin-left: auto;
+    margin-right: auto;
+  }
+}
+
+/* 确保在移动设备上正确显示 */
+@media (max-width: 480px) {
+  .search-container-top .search-progress-card {
+    @apply mt-2;
+  }
+
+  /* 移动端搜索结果显示优化 */
+  .timeline-container {
+    @apply mt-16; /* 减少搜索结果到顶部的距离 */
+  }
+}
+
 .fly-to-input {
   position: fixed;
   z-index: 100;
@@ -232,12 +280,6 @@
 }
 
 /* 搜索进度组件样式 */
-.search-progress-card {
-  @apply glass-card rounded-xl overflow-hidden fixed left-1/2 transform -translate-x-1/2
-         shadow-xl z-20 w-full max-w-md mx-auto animate-fade-in;
-  bottom: 5rem;
-}
-
 .loading-dot {
   @apply rounded-full bg-primary/60;
   animation: blink 1.5s infinite;
@@ -305,6 +347,11 @@
   .hot-search-dropdown {
     max-height: 50vh; /* 在手机上进一步减少高度 */
   }
+}
+
+/* 确保搜索结果框和热搜不重叠 */
+.search-container-center .hot-search-dropdown {
+  margin-bottom: 1rem;
 }
 
 /* 渐变背景装饰 */
