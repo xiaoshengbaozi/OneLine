@@ -17,4 +17,4 @@
   included_files = [".next/server/pages/api/**"]
   node_bundler = "esbuild"
   # 将超时设置为60秒(60000ms)
-  timeout = 60
+  timeout = 120
