@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { Button } from '@/components/ui/button';
 import { ChevronDown, ChevronUp, Flame } from 'lucide-react';
 import axios from 'axios';
@@ -14,24 +14,34 @@ interface HotItem {
 interface HotSearchDropdownProps {
   onSelectHotItem: (title: string) => void;
   visible: boolean;
+  hasSearchResults?: boolean;
 }
 
-export function HotSearchDropdown({ onSelectHotItem, visible }: HotSearchDropdownProps) {
+export function HotSearchDropdown({ onSelectHotItem, visible, hasSearchResults = false }: HotSearchDropdownProps) {
   const [hotItems, setHotItems] = useState<HotItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
   const [expanded, setExpanded] = useState<boolean>(false);
+  const dataFetched = useRef<boolean>(false); // 用于跟踪是否已经获取过数据
 
   // 默认显示数量为20
   const defaultDisplayCount = 20;
 
   useEffect(() => {
     const fetchHotSearches = async () => {
+      // 如果已经获取过数据且有热搜项，不重复请求
+      if (dataFetched.current && hotItems.length > 0) {
+        return;
+      }
+
       try {
         setIsLoading(true);
         setError('');
         const response = await axios.get('/api/baidu-hot');
-        setHotItems(response.data.hotItems || []);
+        if (response.data.hotItems && response.data.hotItems.length > 0) {
+          setHotItems(response.data.hotItems || []);
+          dataFetched.current = true; // 标记数据已获取
+        }
       } catch (err) {
         console.error('Failed to fetch Baidu hot searches:', err);
         setError('获取热搜失败，请稍后再试');
@@ -40,10 +50,11 @@ export function HotSearchDropdown({ onSelectHotItem, visible }: HotSearchDropdow
       }
     };
 
-    if (visible) {
+    // 只有在显示热搜并且没有搜索结果时才发起请求
+    if (visible && !hasSearchResults) {
       fetchHotSearches();
     }
-  }, [visible]);
+  }, [visible, hasSearchResults, hotItems.length]);
 
   // 重置展开状态，但保留可见性
   useEffect(() => {
@@ -52,7 +63,8 @@ export function HotSearchDropdown({ onSelectHotItem, visible }: HotSearchDropdow
     }
   }, [visible]);
 
-  if (!visible) return null;
+  // 如果不可见或者已有搜索结果，不显示热搜
+  if (!visible || hasSearchResults) return null;
 
   // 根据展开状态决定显示多少条
   const displayedItems = expanded ? hotItems : hotItems.slice(0, defaultDisplayCount);
