@@ -194,6 +194,14 @@ function MainContent() {
     setFilteredEvents(sortEvents(filtered));
   }, [timelineData.events, dateFilter, sortDirection]);
 
+  // 确保timelineData与timelineVisible状态保持一致
+  useEffect(() => {
+    // 如果有搜索结果，则确保timelineVisible为true
+    if (timelineData.events.length > 0 && !timelineVisible) {
+      setTimelineVisible(true);
+    }
+  }, [timelineData.events.length, timelineVisible]);
+
   useEffect(() => {
     if (flyingHotItem && inputRef.current) {
       const inputRect = inputRef.current.getBoundingClientRect();
@@ -342,7 +350,11 @@ function MainContent() {
       }
 
       setTimeout(() => {
-        setTimelineVisible(true);
+        // 保留现有timelineVisible状态，如果已经是true，则不改变它
+        if (!timelineVisible) {
+          setTimelineVisible(true);
+        }
+
         if (data.events.length > 0) {
           setTimeout(scrollToTimeline, 300);
         }
@@ -562,8 +574,12 @@ function MainContent() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/70"
-              onFocus={() => { if (!query.trim()) setShowHotSearch(true); }}
-              // 取消onBlur事件，避免用户无法点击热搜项
+              onFocus={() => {
+                // 只在没有搜索结果且输入框为空时显示热搜
+                if (!query.trim() && timelineData.events.length === 0) {
+                  setShowHotSearch(true);
+                }
+              }}
             />
 
             <div className="flex items-center">
@@ -637,8 +653,9 @@ function MainContent() {
           {/* 热搜下拉列表 - 在搜索框下方显示，确保不会因为展开而影响已生成内容 */}
           <div className="w-full mx-auto relative z-30">
             <HotSearchDropdown
-              visible={searchPosition === 'center' && showHotSearch && !isLoading && !timelineVisible}
+              visible={searchPosition === 'center' && showHotSearch && !isLoading}
               onSelectHotItem={handleHotItemClick}
+              hasSearchResults={timelineData.events.length > 0}
             />
           </div>
 

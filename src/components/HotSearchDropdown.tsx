@@ -14,9 +14,10 @@ interface HotItem {
 interface HotSearchDropdownProps {
   onSelectHotItem: (title: string) => void;
   visible: boolean;
+  hasSearchResults?: boolean; // 添加新属性指示是否已有搜索结果
 }
 
-export function HotSearchDropdown({ onSelectHotItem, visible }: HotSearchDropdownProps) {
+export function HotSearchDropdown({ onSelectHotItem, visible, hasSearchResults = false }: HotSearchDropdownProps) {
   const [hotItems, setHotItems] = useState<HotItem[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>('');
@@ -40,10 +41,11 @@ export function HotSearchDropdown({ onSelectHotItem, visible }: HotSearchDropdow
       }
     };
 
-    if (visible) {
+    // 只有在显示热搜并且没有搜索结果时才发起请求
+    if (visible && !hasSearchResults) {
       fetchHotSearches();
     }
-  }, [visible]);
+  }, [visible, hasSearchResults]);
 
   // 重置展开状态，但保留可见性
   useEffect(() => {
@@ -52,7 +54,8 @@ export function HotSearchDropdown({ onSelectHotItem, visible }: HotSearchDropdow
     }
   }, [visible]);
 
-  if (!visible) return null;
+  // 如果不可见或者已有搜索结果，不显示热搜
+  if (!visible || hasSearchResults) return null;
 
   // 根据展开状态决定显示多少条
   const displayedItems = expanded ? hotItems : hotItems.slice(0, defaultDisplayCount);
