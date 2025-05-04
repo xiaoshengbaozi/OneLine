@@ -57,6 +57,9 @@ function MainContent() {
   const [searchStartTime, setSearchStartTime] = useState<number | null>(null);
   const [searchTimeElapsed, setSearchTimeElapsed] = useState<number | null>(null);
 
+  // 用于防止重复搜索
+  const lastSearchQuery = useRef<string>('');
+
   // 进度回调函数
   const progressCallback: ProgressCallback = (message, status) => {
     const newStep: SearchProgressStep = {
@@ -91,6 +94,14 @@ function MainContent() {
 
   // 热搜点击（兼容飞行动画）
   const handleHotItemClick = (title: string) => {
+    // 如果当前搜索词与热搜项相同且已有搜索结果，不重复搜索
+    if (title.trim() === query.trim() && timelineData.events.length > 0 && timelineVisible) {
+      console.log("跳过相同热搜项点击:", title);
+      setShowHotList(false);
+      setShowHotSearch(false);
+      return;
+    }
+
     // 获取热搜项的位置
     const hotItems = document.querySelectorAll('.hot-item');
     let startX = 0;
@@ -103,6 +114,9 @@ function MainContent() {
         startY = rect.top + rect.height / 2;
       }
     });
+
+    // 记录本次搜索的查询词
+    lastSearchQuery.current = title.trim();
 
     setFlyingHotItem({ title, startX, startY });
 
@@ -271,6 +285,15 @@ function MainContent() {
       return;
     }
 
+    // 防止重复搜索 - 如果已经有结果且搜索词未变，不重新搜索
+    if (timelineData.events.length > 0 && timelineVisible && lastSearchQuery.current === query.trim()) {
+      console.log("跳过重复搜索:", query);
+      return;
+    }
+
+    // 记录本次搜索的查询词
+    lastSearchQuery.current = query.trim();
+
     // 隐藏热搜榜
     setShowHotList(false);
     setShowHotSearch(false);  // 确保搜索时隐藏热搜列表
@@ -298,7 +321,8 @@ function MainContent() {
   const fetchData = async () => {
     setIsLoading(true);
     setError('');
-    // 仅在第一次搜索时才设置timelineVisible为false
+
+    // 仅在第一次搜索或没有搜索结果时才设置timelineVisible为false
     // 如果已经有搜索结果，则保持timelineVisible不变
     if (timelineData.events.length === 0) {
       setTimelineVisible(false);
@@ -553,7 +577,15 @@ function MainContent() {
       {/* 搜索表单 - 可以在中央和顶部之间切换 */}
       <form
         ref={searchRef}
-        onSubmit={handleSubmit}
+        onSubmit={(e) => {
+          // 如果已有搜索结果且是从输入框聚焦触发的提交，则阻止提交
+          if (timelineData.events.length > 0 && timelineVisible && document.activeElement === inputRef.current) {
+            console.log("阻止因输入框聚焦导致的重复提交");
+            e.preventDefault();
+            return;
+          }
+          handleSubmit(e);
+        }}
         className={searchPosition === 'center' ? 'search-container-center' : 'search-container-top'}
       >
         {searchPosition === 'center' && (
@@ -574,7 +606,10 @@ function MainContent() {
               value={query}
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/70"
-              onFocus={() => {
+              onFocus={(e) => {
+                // 阻止表单自动提交
+                e.stopPropagation();
+
                 // 只在没有搜索结果且输入框为空时显示热搜
                 if (!query.trim() && timelineData.events.length === 0) {
                   setShowHotSearch(true);
