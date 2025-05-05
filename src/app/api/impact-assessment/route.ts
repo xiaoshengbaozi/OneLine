@@ -1,9 +1,9 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
-import getConfig from '@/lib/env';
+import { getEnvConfig } from '@/lib/env';
 import { ApiConfig } from '@/types';
 
-export const maxDuration = 300; // Set maximum duration to 300 seconds
+export const maxDuration = 60; // Set maximum duration to 60 seconds (Vercel hobby plan limit)
 export const dynamic = 'force-dynamic';
 
 // Impact assessment system prompt
@@ -54,7 +54,7 @@ export async function POST(req: Request) {
     const { model, endpoint, apiKey, query, searchResults } = await req.json();
 
     // 获取配置
-    const config = getConfig();
+    const config = getEnvConfig();
 
     // 根据请求参数或环境变量构建API配置
     const apiConfig: ApiConfig = {
