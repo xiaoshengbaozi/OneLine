@@ -54,6 +54,9 @@ function MainContent() {
   const [showHotSearch, setShowHotSearch] = useState(true); // 搜索框下方热搜下拉
   const [flyingHotItem, setFlyingHotItem] = useState<{ title: string, startX: number, startY: number } | null>(null);
 
+  // 新增impact显示状态
+  const [showImpact, setShowImpact] = useState<boolean>(false);
+
   // 新增搜索耗时和结果数状态
   const [searchStartTime, setSearchStartTime] = useState<number | null>(null);
   const [searchTimeElapsed, setSearchTimeElapsed] = useState<number | null>(null);
@@ -322,6 +325,7 @@ function MainContent() {
   const fetchData = async () => {
     setIsLoading(true);
     setError('');
+    setShowImpact(true);
 
     // 仅在第一次搜索或没有搜索结果时才设置timelineVisible为false
     // 如果已经有搜索结果，则保持timelineVisible不变
@@ -362,9 +366,22 @@ function MainContent() {
         queryWithDateFilter += dateRangeText;
       }
 
+      // 先获取影响评估，流式输出
+      if (progressCallback) {
+        progressCallback('正在分析事件影响', 'pending');
+      }
+
+      // 注意：此处我们不等待影响评估完成，而是在影响评估组件中触发
+      // 这样可以让用户看到流式的影响评估输出，同时降低用户等待时间
+
+      // 再获取时间轴数据
       const streamCallback: StreamCallback = (chunk, isDone) => {
         console.log('收到流式数据块:', chunk.substring(0, 50) + (chunk.length > 50 ? '...' : ''));
       };
+
+      if (progressCallback) {
+        progressCallback('正在生成事件时间轴', 'pending');
+      }
 
       const data = await fetchTimelineData(queryWithDateFilter, apiConfig, progressCallback, streamCallback);
       setTimelineData(data);
@@ -809,8 +826,8 @@ function MainContent() {
               </div>
             )}
 
-            {/* 添加影响评估组件，放在时间轴前面 */}
-            {filteredEvents.length > 0 && (
+            {/* 添加影响评估组件，始终显示在顶部 */}
+            {(showImpact || timelineVisible) && (
               <ImpactAssessment
                 query={query}
                 isLoading={isLoading}
