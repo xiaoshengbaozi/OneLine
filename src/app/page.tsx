@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Timeline } from '@/components/Timeline';
+import { ImpactAssessment } from '@/components/ImpactAssessment'; // 新增导入影响评估组件
 import { ApiSettings } from '@/components/ApiSettings';
 import { ApiProvider, useApi } from '@/contexts/ApiContext';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -15,7 +16,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import type { TimelineData, TimelineEvent, DateFilterOption, DateFilterConfig } from '@/types';
-import { fetchTimelineData, fetchEventDetails, type ProgressCallback, type StreamCallback } from '@/lib/api';
+import { fetchTimelineData, fetchEventDetails, fetchImpactAssessment, type ProgressCallback, type StreamCallback } from '@/lib/api'; // 添加fetchImpactAssessment导入
 import { SearchProgress, type SearchProgressStep } from '@/components/SearchProgress';
 import { BaiduHotList } from '@/components/BaiduHotList';
 import { HotSearchDropdown } from '@/components/HotSearchDropdown';
@@ -509,6 +510,63 @@ function MainContent() {
     }
   };
 
+  // 添加影响评估处理函数
+  const handleRequestImpact = async (query: string, streamCallback?: StreamCallback): Promise<string> => {
+    if (!isConfigured) {
+      toast.info('请先配置API设置');
+      setShowSettings(true);
+      return '请先配置API设置';
+    }
+
+    if (isPasswordProtected && !isPasswordValidated) {
+      toast.info('请先验证访问密码');
+      setShowSettings(true);
+      return '请先验证访问密码';
+    }
+
+    setSearchProgressSteps([]);
+    setSearchProgressActive(true);
+    setSearchProgressVisible(true);
+
+    // 记录搜索开始时间
+    setSearchStartTime(Date.now());
+    setSearchTimeElapsed(null);
+
+    try {
+      const impactContent = await fetchImpactAssessment(
+        query,
+        apiConfig,
+        progressCallback,
+        streamCallback
+      );
+
+      // 计算搜索耗时
+      if (searchStartTime) {
+        setSearchTimeElapsed(Date.now() - searchStartTime);
+      }
+
+      // 不自动隐藏进度
+      setTimeout(() => {
+        setSearchProgressActive(false);
+      }, 1000);
+
+      return impactContent;
+    } catch (err: unknown) {
+      const errorMessage = err instanceof Error ? err.message : '获取影响评估失败';
+      toast.error(errorMessage);
+      console.error('Error fetching impact assessment:', err);
+
+      setSearchProgressActive(false);
+
+      // 计算搜索耗时(即使出错)
+      if (searchStartTime) {
+        setSearchTimeElapsed(Date.now() - searchStartTime);
+      }
+
+      return '获取影响评估失败，请稍后再试';
+    }
+  };
+
   const exportAsImage = () => {
     if (filteredEvents.length === 0) {
       toast.warning('没有可导出的内容');
@@ -749,6 +807,15 @@ function MainContent() {
               <div className="mb-6 sm:mb-8 p-3 sm:p-4 glass text-red-500 dark:text-red-300 rounded-lg text-sm sm:text-base">
                 {error}
               </div>
+            )}
+
+            {/* 添加影响评估组件，放在时间轴前面 */}
+            {filteredEvents.length > 0 && (
+              <ImpactAssessment
+                query={query}
+                isLoading={isLoading}
+                onRequestImpact={handleRequestImpact}
+              />
             )}
 
             {filteredEvents.length > 0 && (
