@@ -810,18 +810,18 @@ function MainContent() {
               hasSearchResults={timelineData.events.length > 0}
             />
           </div>
-
-          <div className="w-full mx-auto mt-4 transition-all duration-300">
-            <SearchProgress
-              steps={searchProgressSteps}
-              visible={searchProgressVisible}
-              isActive={searchProgressActive}
-              timeElapsed={searchTimeElapsed || undefined}
-              resultCount={filteredEvents.length || undefined}
-            />
-          </div>
         </div>
       </form>
+
+      <div className="w-full mx-auto px-4 max-w-3xl mt-2">
+        <SearchProgress
+          steps={searchProgressSteps}
+          visible={searchProgressVisible}
+          isActive={searchProgressActive}
+          timeElapsed={searchTimeElapsed || undefined}
+          resultCount={filteredEvents.length || undefined}
+        />
+      </div>
 
       <BaiduHotList
         visible={showHotList}
@@ -843,8 +843,7 @@ function MainContent() {
       )}
 
       {/* Split impact analysis and timeline */}
-      <div className="flex-1 pt-28 pb-12 px-2 sm:px-4 md:px-8 w-full max-w-6xl mx-auto">
-        {/* Impact Analysis Section */}
+      <div className="flex-1 pt-16 pb-12 px-2 sm:px-4 md:px-8 w-full max-w-6xl mx-auto">
         {(showImpact || timelineVisible) && (
           <div className="mt-4 sm:mt-0 mb-0">
             <ImpactAssessment
@@ -855,7 +854,6 @@ function MainContent() {
           </div>
         )}
 
-        {/* Timeline Section */}
         {(timelineVisible || isLoading) && (
           <div
             ref={timelineRef}

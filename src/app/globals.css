@@ -165,7 +165,7 @@
 .search-progress-card {
   @apply glass-card rounded-xl overflow-hidden w-full max-w-3xl mx-auto;
   position: relative;
-  z-index: 30;
+  z-index: 20;
   transition: all 0.3s ease;
   transform-origin: top center;
   animation: fadeSlideDown 0.3s ease;
@@ -175,13 +175,12 @@
 }
 
 .search-progress-card.collapsed {
-  position: absolute;
-  top: calc(100% + 8px); /* 将折叠后的进度条放在搜索栏下方 */
   z-index: 20;
   opacity: 0.95;
   max-width: calc(100% - 2rem);
-  left: 50%;
-  transform: translateX(-50%);
+  margin-left: auto;
+  margin-right: auto;
+  /* 移除position: absolute和top属性，使其不再固定在搜索框下方 */
 }
 
 @keyframes fadeSlideDown {
@@ -208,6 +207,17 @@
     margin-left: auto;
     margin-right: auto;
   }
+
+  /* 搜索位于顶部时，相应调整内容区域顶部边距 */
+  .search-container-top + div + .flex-1 {
+    padding-top: 1rem;
+  }
+}
+
+/* 特别处理搜索位于顶部时的页面布局 */
+.search-container-top + div {
+  margin-top: 1rem;
+  margin-bottom: 2rem;
 }
 
 /* 确保在移动设备上正确显示 */
@@ -224,8 +234,7 @@
   }
 
   .search-progress-card.collapsed {
-    position: fixed; /* Keep it fixed at the top under the search bar */
-    top: 64px; /* Position right below the search bar */
+    /* 移除position: fixed和top属性，使其不再固定在搜索框下方 */
     z-index: 15; /* Lower than search bar but above content */
     width: calc(100% - 1rem);
     max-width: calc(100% - 1rem);
@@ -233,7 +242,7 @@
 
   /* 确保时间轴有足够的顶部边距不被搜索框遮挡 */
   .timeline-container {
-    @apply mt-24 pt-6; /* Increased top padding/margin */
+    @apply mt-12 pt-4; /* 减少顶部边距，因为SearchProgress不再遮挡内容 */
   }
 
   /* 修复时间轴卡片在移动端的样式 */
@@ -267,14 +276,13 @@
   }
 
   .search-progress-card.collapsed {
-    top: 60px;
+    /* 移除top属性，使其不再固定在搜索框下方 */
   }
 
   .timeline-container {
-    @apply mt-28 pt-8; /* Further increase margin/padding for extra small screens */
+    @apply mt-12 pt-4; /* 减少顶部边距，适应新布局 */
   }
 
-  /* 进一步减小超小屏幕上的事件卡片内边距 */
   .event-card .p-2 {
     padding: 0.3rem;
   }
