@@ -236,7 +236,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
         {events.map((event, index) => {
           const isExpanded = expandedEvents.has(event.id);
           return (
-            <div key={event.id} className="flex gap-2 sm:gap-4 animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
+            <div key={event.id} className="flex gap-1 sm:gap-4 animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
               <div className="flex flex-col items-center">
                 <div className="event-date">
                   {event.date}
@@ -246,10 +246,10 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                   <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-amber-400 animate-pulse" />
                 )}
               </div>
-              <div className="flex-1 pb-3 sm:pb-4">
-                <Card className="event-card">
-                  <CardHeader className="p-3 sm:p-6">
-                    <CardTitle className="text-base sm:text-lg">{event.title}</CardTitle>
+              <div className="flex-1 pb-3 sm:pb-4 w-full">
+                <Card className="event-card w-full">
+                  <CardHeader className="p-2 sm:p-6">
+                    <CardTitle className="text-sm sm:text-lg break-words">{event.title}</CardTitle>
                     {event.source && (
                       <CardDescription className="text-xs mt-1">
                         来源: {event.sourceUrl ? (
@@ -266,17 +266,17 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                     )}
                     {renderPeople(event.people)}
                   </CardHeader>
-                  <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
-                    <p className={`text-sm sm:text-base ${isExpanded ? '' : 'line-clamp-3'}`}>
+                  <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+                    <p className={`text-xs sm:text-base ${isExpanded ? '' : 'line-clamp-3'}`}>
                       {event.description}
                     </p>
                   </CardContent>
-                  <CardFooter className="p-3 sm:p-6 pt-0 sm:pt-0 flex justify-between">
+                  <CardFooter className="p-2 sm:p-6 pt-0 sm:pt-0 flex justify-between">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => toggleExpand(event.id)}
-                      className="text-xs sm:text-sm rounded-full"
+                      className="text-xs sm:text-sm rounded-full h-7 sm:h-8 px-2 sm:px-3"
                     >
                       {isExpanded ? '收起' : '展开'}
                     </Button>
@@ -284,7 +284,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                       variant="outline"
                       size="sm"
                       onClick={() => handleShowDetails(event)}
-                      className="text-xs sm:text-sm rounded-full"
+                      className="text-xs sm:text-sm rounded-full h-7 sm:h-8 px-2 sm:px-3"
                     >
                       AI分析
                     </Button>
@@ -297,14 +297,14 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
       </div>
 
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-md sm:max-w-2xl p-4 sm:p-6 glass-card rounded-xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl p-3 sm:p-6 glass-card rounded-xl">
           <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">{selectedEvent?.title}</DialogTitle>
+            <DialogTitle className="text-sm sm:text-lg break-words">{selectedEvent?.title}</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
               {selectedEvent?.date}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-2 sm:mt-4 max-h-[60vh] overflow-y-auto">
+          <div className="mt-2 sm:mt-4 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
             {!isLoadingDetails || (isStreamingDetails && detailsContent) ? (
               <div className="relative">
                 {renderMarkdown(detailsContent)}

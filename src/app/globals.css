@@ -212,13 +212,50 @@
 
 /* 确保在移动设备上正确显示 */
 @media (max-width: 480px) {
-  .search-container-top .search-progress-card {
-    @apply mt-2;
+  .search-container-top {
+    @apply top-2; /* Reduce top margin for mobile */
+    width: calc(100% - 1rem); /* Give some space on the sides */
+    max-width: calc(100% - 1rem); /* Consistent with width */
   }
 
-  /* 移动端搜索结果显示优化 */
+  .search-progress-card {
+    @apply mt-4 mb-4; /* Add more margin to separate from content */
+    width: 100%; /* Full width on mobile */
+  }
+
+  .search-progress-card.collapsed {
+    position: fixed; /* Keep it fixed at the top under the search bar */
+    top: 64px; /* Position right below the search bar */
+    z-index: 15; /* Lower than search bar but above content */
+    width: calc(100% - 1rem);
+    max-width: calc(100% - 1rem);
+  }
+
+  /* Ensure timeline has enough top margin to not be hidden by search */
   .timeline-container {
-    @apply mt-16; /* 减少搜索结果到顶部的距离 */
+    @apply mt-24 pt-10; /* Increased top padding/margin */
+  }
+}
+
+/* Ensure proper spacing for small mobile devices */
+@media (max-width: 375px) {
+  .search-container-top {
+    @apply top-1;
+  }
+
+  .search-progress-card.collapsed {
+    top: 60px;
+  }
+
+  .timeline-container {
+    @apply mt-28 pt-12; /* Further increase margin/padding for extra small screens */
+  }
+}
+
+/* Fix for the ImpactAssessment component on mobile */
+@media (max-width: 640px) {
+  .impact-assessment-container {
+    @apply mt-16 pt-4; /* Add top margin/padding for impact assessment */
   }
 }
 
@@ -289,7 +326,8 @@
 
 .event-date {
   @apply glass text-xs sm:text-sm text-muted-foreground whitespace-nowrap
-         mb-1 sm:mb-2 px-3 py-1.5 rounded-full;
+         mb-1 sm:mb-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full;
+  font-size: 0.65rem;
 }
 
 /* 搜索进度组件样式 */

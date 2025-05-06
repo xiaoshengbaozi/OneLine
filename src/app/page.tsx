@@ -685,16 +685,16 @@ function MainContent() {
       <div className="bg-gradient-purple" />
       <div className="bg-gradient-blue" />
 
-      <header className="fixed top-0 left-0 w-full z-20 flex justify-end items-center p-4 md:px-8">
-        <div className="flex gap-2">
+      <header className="fixed top-0 left-0 w-full z-20 flex justify-end items-center p-2 sm:p-4 md:px-8">
+        <div className="flex gap-1 sm:gap-2">
           <ThemeToggle />
           <Button
             variant="ghost"
             size="icon"
             onClick={() => setShowSettings(true)}
-            className="rounded-full"
+            className="rounded-full w-8 h-8 sm:w-9 sm:h-9"
           >
-            <Settings size={20} />
+            <Settings size={18} />
           </Button>
         </div>
       </header>
@@ -709,7 +709,7 @@ function MainContent() {
           }
           handleSubmit(e);
         }}
-        className={searchPosition === 'center' ? 'search-container-center' : 'search-container-top'}
+        className={`${searchPosition === 'center' ? 'search-container-center' : 'search-container-top'} z-30`}
       >
         {searchPosition === 'center' && (
           <div className="flex flex-col items-center mb-8 animate-slide-down">
@@ -725,10 +725,10 @@ function MainContent() {
             <Input
               ref={inputRef}
               type="text"
-              placeholder="输入关键词，如：俄乌冲突、中美贸易..."
+              placeholder="输入关键词，如：俄乌冲突..."
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              className="flex-1 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/70"
+              className="flex-1 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/70 text-sm sm:text-base h-8 sm:h-10"
               onFocus={(e) => {
                 e.stopPropagation();
                 if (!query.trim() && timelineData.events.length === 0) {
@@ -843,14 +843,16 @@ function MainContent() {
       )}
 
       {/* Split impact analysis and timeline */}
-      <div className="flex-1 pt-28 pb-12 px-4 md:px-8 w-full max-w-6xl mx-auto">
+      <div className="flex-1 pt-28 pb-12 px-2 sm:px-4 md:px-8 w-full max-w-6xl mx-auto">
         {/* Impact Analysis Section */}
         {(showImpact || timelineVisible) && (
-          <ImpactAssessment
-            query={query}
-            isLoading={isLoading}
-            onRequestImpact={handleRequestImpact}
-          />
+          <div className="mt-8 sm:mt-0">
+            <ImpactAssessment
+              query={query}
+              isLoading={isLoading}
+              onRequestImpact={handleRequestImpact}
+            />
+          </div>
         )}
 
         {/* Timeline Section */}
