@@ -232,17 +232,6 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
 
   return (
     <div className="w-full max-w-3xl mx-auto">
-      {summary && (
-        <Card className="mb-6 sm:mb-8 glass-card rounded-xl">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl">事件总结</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-            <p className="text-sm sm:text-base">{summary}</p>
-          </CardContent>
-        </Card>
-      )}
-
       <div className="flex flex-col gap-4 sm:gap-6 py-4 sm:py-8">
         {events.map((event, index) => {
           const isExpanded = expandedEvents.has(event.id);

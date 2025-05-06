@@ -60,7 +60,7 @@ export function SearchProgress({ steps, visible, isActive, timeElapsed, resultCo
   const completedSteps = steps.filter(step => step.status === 'completed').length;
 
   return (
-    <Card className="search-progress-card shadow-lg relative">
+    <Card className={`search-progress-card shadow-lg relative ${isCollapsed ? 'collapsed' : ''}`}>
       <CardContent className="p-3 sm:p-4">
         {isCollapsed ? (
           <div className="flex items-center justify-between">
