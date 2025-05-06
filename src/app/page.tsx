@@ -21,7 +21,30 @@ import { SearchProgress, type SearchProgressStep } from '@/components/SearchProg
 import { BaiduHotList } from '@/components/BaiduHotList';
 import { HotSearchDropdown } from '@/components/HotSearchDropdown';
 import { toast } from 'sonner';
-import { Settings, SortDesc, SortAsc, Download, Search, ChevronDown, Flame } from 'lucide-react';
+import { Settings, SortDesc, SortAsc, Download, Search, ChevronDown, Flame, FileText } from 'lucide-react';
+import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
+import { Skeleton } from '@/components/ui/skeleton';
+import { formatMarkdownText } from '@/lib/markdown';
+
+// Markdown rendering utility
+const renderMarkdown = (content: string) => {
+  if (!content) return null;
+
+  return (
+    <div className="space-y-3 animate-fade-in">
+      {content.split("\n\n").map((paragraph, index) => (
+        <div
+          key={`paragraph-${index}`}
+          className="text-sm leading-relaxed animate-fade-in"
+          style={{ animationDelay: `${0.15 * index}s` }}
+          dangerouslySetInnerHTML={{
+            __html: formatMarkdownText(paragraph.replace(/\n/g, '<br />'))
+          }}
+        />
+      ))}
+    </div>
+  );
+};
 
 function MainContent() {
   const { apiConfig, isConfigured, isPasswordProtected, isPasswordValidated } = useApi();
@@ -57,6 +80,13 @@ function MainContent() {
   const [searchTimeElapsed, setSearchTimeElapsed] = useState<number | null>(null);
 
   const lastSearchQuery = useRef<string>('');
+
+  // For event description (事件简介)
+  const [eventSummary, setEventSummary] = useState<string | null>(null);
+
+  // For impact assessment content (to parse summary)
+  const [impactContent, setImpactContent] = useState<string | null>(null);
+  const [parsedImpact, setParsedImpact] = useState<{ summary?: string } | null>(null);
 
   const progressCallback: ProgressCallback = (message, status) => {
     const newStep: SearchProgressStep = {
@@ -239,6 +269,33 @@ function MainContent() {
     }
   }, [timelineVisible, timelineData.events.length]);
 
+  // For impact assessment summary extraction
+  const extractSummary = (content: string): string => {
+    if (!content) return '';
+
+    // First try to find the summary section marked with ===事件简介===
+    const summaryMatch = content.match(/===事件简介===\s*([\s\S]*?)(?=\s*===经济影响===|$)/);
+    if (summaryMatch && summaryMatch[1]) {
+      return summaryMatch[1].trim();
+    }
+
+    // If not found, try to extract the first paragraph as a fallback
+    const firstParagraph = content.split('\n\n')[0];
+    if (firstParagraph) {
+      return firstParagraph.trim();
+    }
+
+    return '';
+  };
+
+  // Update the useEffect for processing impact content to properly set parsedImpact
+  useEffect(() => {
+    if (impactContent) {
+      const summary = extractSummary(impactContent);
+      setParsedImpact(prev => ({ ...prev, summary }));
+    }
+  }, [impactContent]);
+
   const sortEvents = (events: TimelineEvent[]): TimelineEvent[] => {
     return [...events].sort((a, b) => {
       const dateA = a.date.replace(/\D/g, '');
@@ -305,6 +362,8 @@ function MainContent() {
     setIsLoading(true);
     setError('');
     setShowImpact(true);
+    setImpactContent(null);
+    setParsedImpact(null);
 
     if (timelineData.events.length === 0) {
       setTimelineVisible(false);
@@ -317,7 +376,7 @@ function MainContent() {
         let dateRangeText = '';
         const now = new Date();
 
-        switch(dateFilter.option) {
+        switch (dateFilter.option) {
           case 'month':
             const monthAgo = new Date(now);
             monthAgo.setMonth(now.getMonth() - 1);
@@ -348,15 +407,26 @@ function MainContent() {
         progressCallback('正在分析事件影响', 'pending');
       }
 
-      // 在这里不等待影响评估完成，影响评估组件会自行处理流式输出
-      // 但延迟获取时间轴数据，以确保在UI上呈现顺序正确
+      // 获取影响评估内容（流式）
+      let impactText = '';
+      fetchImpactAssessment(
+        queryWithDateFilter,
+        apiConfig,
+        progressCallback,
+        (chunk, isDone) => {
+          impactText += chunk;
+          setImpactContent(impactText);
+        }
+      ).catch(err => {
+        console.error('Error fetching impact assessment:', err);
+      });
 
       // 在短暂延迟后（让影响评估有时间开始显示）生成时间轴
       setTimeout(async () => {
         try {
           // 再获取时间轴数据
           const streamCallback: StreamCallback = (chunk, isDone) => {
-            console.log('收到流式数据块:', chunk.substring(0, 50) + (chunk.length > 50 ? '...' : ''));
+            // 可用于流式处理时间轴
           };
 
           if (progressCallback) {
@@ -531,11 +601,16 @@ function MainContent() {
     setSearchTimeElapsed(null);
 
     try {
-      const impactContent = await fetchImpactAssessment(
+      let impactText = '';
+      const result = await fetchImpactAssessment(
         query,
         apiConfig,
         progressCallback,
-        streamCallback
+        (chunk, isDone) => {
+          impactText += chunk;
+          setImpactContent(impactText);
+          if (streamCallback) streamCallback(chunk, isDone);
+        }
       );
 
       if (searchStartTime) {
@@ -546,7 +621,7 @@ function MainContent() {
         setSearchProgressActive(false);
       }, 1000);
 
-      return impactContent;
+      return result;
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '获取影响评估失败';
       toast.error(errorMessage);
@@ -767,8 +842,55 @@ function MainContent() {
         </div>
       )}
 
-      {/* --- UPDATED: ImpactAssessment always first, then Timeline --- */}
+      {/* --- UPDATED: Split event description and impact analysis --- */}
       <div className="flex-1 pt-28 pb-12 px-4 md:px-8 w-full max-w-6xl mx-auto">
+        {/* Event Description Section - New separate section */}
+        {(showImpact || timelineVisible) && (
+          <div className="w-full max-w-3xl mx-auto mb-8">
+            <Card className="glass-card rounded-xl overflow-hidden">
+              <CardHeader className="p-4 sm:p-6">
+                <CardTitle className="text-lg sm:text-xl flex items-center gap-2">
+                  <FileText className="h-5 w-5" />
+                  事件简介
+                </CardTitle>
+                <CardDescription>
+                  详细了解事件的基本情况和核心内容
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
+                {isLoading ? (
+                  <div className="space-y-3">
+                    <Skeleton className="h-4 w-full" />
+                    <Skeleton className="h-4 w-[90%]" />
+                    <Skeleton className="h-4 w-[85%]" />
+                  </div>
+                ) : (
+                  showImpact && (
+                    <div>
+                      {parsedImpact?.summary ? (
+                        <div className="prose prose-sm dark:prose-invert max-w-none">
+                          {renderMarkdown(parsedImpact.summary)}
+                        </div>
+                      ) : (
+                        <div className="text-center text-muted-foreground py-4">
+                          {isLoading ? (
+                            <div className="flex justify-center">
+                              <div className="loading-spinner" />
+                            </div>
+                          ) : (
+                            "暂无事件简介"
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        )}
+
+        {/* Impact Analysis Section */}
         {(showImpact || timelineVisible) && (
           <ImpactAssessment
             query={query}
@@ -777,6 +899,7 @@ function MainContent() {
           />
         )}
 
+        {/* Timeline Section */}
         {(timelineVisible || isLoading) && (
           <div
             ref={timelineRef}
