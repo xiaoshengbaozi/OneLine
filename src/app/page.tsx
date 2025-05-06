@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Timeline } from '@/components/Timeline';
-import { ImpactAssessment } from '@/components/ImpactAssessment'; // 新增导入影响评估组件
+import { ImpactAssessment } from '@/components/ImpactAssessment';
 import { ApiSettings } from '@/components/ApiSettings';
 import { ApiProvider, useApi } from '@/contexts/ApiContext';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -16,7 +16,7 @@ import {
   SelectValue
 } from '@/components/ui/select';
 import type { TimelineData, TimelineEvent, DateFilterOption, DateFilterConfig } from '@/types';
-import { fetchTimelineData, fetchEventDetails, fetchImpactAssessment, type ProgressCallback, type StreamCallback } from '@/lib/api'; // 添加fetchImpactAssessment导入
+import { fetchTimelineData, fetchEventDetails, fetchImpactAssessment, type ProgressCallback, type StreamCallback } from '@/lib/api';
 import { SearchProgress, type SearchProgressStep } from '@/components/SearchProgress';
 import { BaiduHotList } from '@/components/BaiduHotList';
 import { HotSearchDropdown } from '@/components/HotSearchDropdown';
@@ -37,34 +37,27 @@ function MainContent() {
   const [endDate, setEndDate] = useState<string>('');
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
-  // 新增的状态用于控制搜索框位置和时间轴可见性
   const [searchPosition, setSearchPosition] = useState<'center' | 'top'>('center');
   const [timelineVisible, setTimelineVisible] = useState(false);
   const searchRef = useRef<HTMLFormElement>(null);
   const timelineRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
-  // 新增进度状态
   const [searchProgressVisible, setSearchProgressVisible] = useState(false);
   const [searchProgressSteps, setSearchProgressSteps] = useState<SearchProgressStep[]>([]);
   const [searchProgressActive, setSearchProgressActive] = useState(false);
 
-  // 热搜状态
-  const [showHotList, setShowHotList] = useState(false); // 保留原有热搜弹窗
-  const [showHotSearch, setShowHotSearch] = useState(true); // 搜索框下方热搜下拉
+  const [showHotList, setShowHotList] = useState(false);
+  const [showHotSearch, setShowHotSearch] = useState(true);
   const [flyingHotItem, setFlyingHotItem] = useState<{ title: string, startX: number, startY: number } | null>(null);
 
-  // 新增impact显示状态
   const [showImpact, setShowImpact] = useState<boolean>(false);
 
-  // 新增搜索耗时和结果数状态
   const [searchStartTime, setSearchStartTime] = useState<number | null>(null);
   const [searchTimeElapsed, setSearchTimeElapsed] = useState<number | null>(null);
 
-  // 用于防止重复搜索
   const lastSearchQuery = useRef<string>('');
 
-  // 进度回调函数
   const progressCallback: ProgressCallback = (message, status) => {
     const newStep: SearchProgressStep = {
       id: `step-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`,
@@ -96,9 +89,7 @@ function MainContent() {
     }
   };
 
-  // 热搜点击（兼容飞行动画）
   const handleHotItemClick = (title: string) => {
-    // 如果当前搜索词与热搜项相同且已有搜索结果，不重复搜索
     if (title.trim() === query.trim() && timelineData.events.length > 0 && timelineVisible) {
       console.log("跳过相同热搜项点击:", title);
       setShowHotList(false);
@@ -106,7 +97,6 @@ function MainContent() {
       return;
     }
 
-    // 获取热搜项的位置
     const hotItems = document.querySelectorAll('.hot-item');
     let startX = 0;
     let startY = 0;
@@ -119,7 +109,6 @@ function MainContent() {
       }
     });
 
-    // 记录本次搜索的查询词
     lastSearchQuery.current = title.trim();
 
     setFlyingHotItem({ title, startX, startY });
@@ -128,7 +117,7 @@ function MainContent() {
       setQuery(title);
       setShowHotList(false);
       setFlyingHotItem(null);
-      setShowHotSearch(false); // 隐藏下拉热搜
+      setShowHotSearch(false);
 
       setTimeout(() => {
         if (inputRef.current) {
@@ -212,9 +201,7 @@ function MainContent() {
     setFilteredEvents(sortEvents(filtered));
   }, [timelineData.events, dateFilter, sortDirection]);
 
-  // 确保timelineData与timelineVisible状态保持一致
   useEffect(() => {
-    // 如果有搜索结果，则确保timelineVisible为true
     if (timelineData.events.length > 0 && !timelineVisible) {
       setTimelineVisible(true);
     }
@@ -234,21 +221,18 @@ function MainContent() {
     }
   }, [flyingHotItem]);
 
-  // 自动显示热搜下拉（仅在搜索框为空且聚焦时）
   useEffect(() => {
     if (!query.trim()) {
       setShowHotSearch(true);
     }
   }, [query]);
 
-  // 优化逻辑：只要query有内容就隐藏热搜
   useEffect(() => {
     if (query.trim()) {
       setShowHotSearch(false);
     }
   }, [query]);
 
-  // 有搜索结果时隐藏热搜
   useEffect(() => {
     if (timelineVisible && timelineData.events.length > 0) {
       setShowHotSearch(false);
@@ -289,29 +273,23 @@ function MainContent() {
       return;
     }
 
-    // 防止重复搜索 - 如果已经有结果且搜索词未变，不重新搜索
     if (timelineData.events.length > 0 && timelineVisible && lastSearchQuery.current === query.trim()) {
       console.log("跳过重复搜索:", query);
       return;
     }
 
-    // 记录本次搜索的查询词
     lastSearchQuery.current = query.trim();
 
-    // 隐藏热搜榜
     setShowHotList(false);
-    setShowHotSearch(false);  // 确保搜索时隐藏热搜列表
+    setShowHotSearch(false);
 
-    // 重置进度显示
     setSearchProgressSteps([]);
     setSearchProgressActive(true);
     setSearchProgressVisible(true);
 
-    // 记录搜索开始时间
     setSearchStartTime(Date.now());
     setSearchTimeElapsed(null);
 
-    // 如果搜索框在中央，则先将其移动到顶部
     if (searchPosition === 'center') {
       setSearchPosition('top');
       setTimeout(() => {
@@ -322,13 +300,12 @@ function MainContent() {
     }
   };
 
+  // --- UPDATED fetchData: ImpactAssessment first, then Timeline after a delay ---
   const fetchData = async () => {
     setIsLoading(true);
     setError('');
     setShowImpact(true);
 
-    // 仅在第一次搜索或没有搜索结果时才设置timelineVisible为false
-    // 如果已经有搜索结果，则保持timelineVisible不变
     if (timelineData.events.length === 0) {
       setTimelineVisible(false);
     }
@@ -366,53 +343,65 @@ function MainContent() {
         queryWithDateFilter += dateRangeText;
       }
 
-      // 先获取影响评估，流式输出
+      // 优先获取影响评估，确保在UI上先显示影响评估的内容，让用户更快看到结果
       if (progressCallback) {
         progressCallback('正在分析事件影响', 'pending');
       }
 
-      // 注意：此处我们不等待影响评估完成，而是在影响评估组件中触发
-      // 这样可以让用户看到流式的影响评估输出，同时降低用户等待时间
+      // 在这里不等待影响评估完成，影响评估组件会自行处理流式输出
+      // 但延迟获取时间轴数据，以确保在UI上呈现顺序正确
 
-      // 再获取时间轴数据
-      const streamCallback: StreamCallback = (chunk, isDone) => {
-        console.log('收到流式数据块:', chunk.substring(0, 50) + (chunk.length > 50 ? '...' : ''));
-      };
+      // 在短暂延迟后（让影响评估有时间开始显示）生成时间轴
+      setTimeout(async () => {
+        try {
+          // 再获取时间轴数据
+          const streamCallback: StreamCallback = (chunk, isDone) => {
+            console.log('收到流式数据块:', chunk.substring(0, 50) + (chunk.length > 50 ? '...' : ''));
+          };
 
-      if (progressCallback) {
-        progressCallback('正在生成事件时间轴', 'pending');
-      }
+          if (progressCallback) {
+            progressCallback('正在生成事件时间轴', 'pending');
+          }
 
-      const data = await fetchTimelineData(queryWithDateFilter, apiConfig, progressCallback, streamCallback);
-      setTimelineData(data);
+          const data = await fetchTimelineData(queryWithDateFilter, apiConfig, progressCallback, streamCallback);
+          setTimelineData(data);
 
-      // 计算搜索耗时
-      if (searchStartTime) {
-        setSearchTimeElapsed(Date.now() - searchStartTime);
-      }
+          if (searchStartTime) {
+            setSearchTimeElapsed(Date.now() - searchStartTime);
+          }
 
-      setTimeout(() => {
-        // 保留现有timelineVisible状态，如果已经是true，则不改变它
-        if (!timelineVisible) {
-          setTimelineVisible(true);
+          setTimeout(() => {
+            if (!timelineVisible) {
+              setTimelineVisible(true);
+            }
+
+            if (data.events.length > 0) {
+              setTimeout(scrollToTimeline, 300);
+            }
+
+            setSearchProgressActive(false);
+
+          }, 300);
+
+          if (data.events.length === 0) {
+            toast.warning('未找到相关事件，请尝试其他关键词');
+          }
+        } catch (err: unknown) {
+          const errorMessage = err instanceof Error ? err.message : '发生错误，请稍后再试';
+          setError(errorMessage);
+          toast.error(errorMessage);
+          console.error('Error fetching timeline data:', err);
+
+          setSearchProgressActive(false);
+
+          if (searchStartTime) {
+            setSearchTimeElapsed(Date.now() - searchStartTime);
+          }
+        } finally {
+          setIsLoading(false);
         }
+      }, 1000); // 1秒延迟，让影响评估先开始显示
 
-        if (data.events.length > 0) {
-          setTimeout(scrollToTimeline, 300);
-        }
-
-        setSearchProgressActive(false);
-
-        // 不再自动隐藏搜索进度框
-        // setTimeout(() => {
-        //   setSearchProgressVisible(false);
-        // }, 3000);
-
-      }, 300);
-
-      if (data.events.length === 0) {
-        toast.warning('未找到相关事件，请尝试其他关键词');
-      }
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '发生错误，请稍后再试';
       setError(errorMessage);
@@ -421,14 +410,13 @@ function MainContent() {
 
       setSearchProgressActive(false);
 
-      // 计算搜索耗时(即使出错)
       if (searchStartTime) {
         setSearchTimeElapsed(Date.now() - searchStartTime);
       }
-    } finally {
       setIsLoading(false);
     }
   };
+  // --- END UPDATED fetchData ---
 
   const formatDate = (date: Date | undefined): string => {
     if (!date) return '';
@@ -484,7 +472,6 @@ function MainContent() {
     setSearchProgressActive(true);
     setSearchProgressVisible(true);
 
-    // 记录搜索开始时间
     setSearchStartTime(Date.now());
     setSearchTimeElapsed(null);
 
@@ -499,14 +486,11 @@ function MainContent() {
         streamCallback
       );
 
-      // 计算搜索耗时
       if (searchStartTime) {
         setSearchTimeElapsed(Date.now() - searchStartTime);
       }
 
-      // 不自动隐藏进度
       setTimeout(() => {
-        // setSearchProgressVisible(false);
         setSearchProgressActive(false);
       }, 1000);
 
@@ -518,7 +502,6 @@ function MainContent() {
 
       setSearchProgressActive(false);
 
-      // 计算搜索耗时(即使出错)
       if (searchStartTime) {
         setSearchTimeElapsed(Date.now() - searchStartTime);
       }
@@ -527,7 +510,6 @@ function MainContent() {
     }
   };
 
-  // 添加影响评估处理函数
   const handleRequestImpact = async (query: string, streamCallback?: StreamCallback): Promise<string> => {
     if (!isConfigured) {
       toast.info('请先配置API设置');
@@ -545,7 +527,6 @@ function MainContent() {
     setSearchProgressActive(true);
     setSearchProgressVisible(true);
 
-    // 记录搜索开始时间
     setSearchStartTime(Date.now());
     setSearchTimeElapsed(null);
 
@@ -557,12 +538,10 @@ function MainContent() {
         streamCallback
       );
 
-      // 计算搜索耗时
       if (searchStartTime) {
         setSearchTimeElapsed(Date.now() - searchStartTime);
       }
 
-      // 不自动隐藏进度
       setTimeout(() => {
         setSearchProgressActive(false);
       }, 1000);
@@ -575,7 +554,6 @@ function MainContent() {
 
       setSearchProgressActive(false);
 
-      // 计算搜索耗时(即使出错)
       if (searchStartTime) {
         setSearchTimeElapsed(Date.now() - searchStartTime);
       }
@@ -623,18 +601,15 @@ function MainContent() {
     });
   };
 
-  // 保留弹窗热搜榜切换函数（兼容旧逻辑）
   const toggleHotList = () => {
     setShowHotList(prev => !prev);
   };
 
   return (
     <main className="flex min-h-screen flex-col relative">
-      {/* 背景渐变装饰 */}
       <div className="bg-gradient-purple" />
       <div className="bg-gradient-blue" />
 
-      {/* 头部 - 位于顶部固定不动 */}
       <header className="fixed top-0 left-0 w-full z-20 flex justify-end items-center p-4 md:px-8">
         <div className="flex gap-2">
           <ThemeToggle />
@@ -649,11 +624,9 @@ function MainContent() {
         </div>
       </header>
 
-      {/* 搜索表单 - 可以在中央和顶部之间切换 */}
       <form
         ref={searchRef}
         onSubmit={(e) => {
-          // 如果已有搜索结果且是从输入框聚焦触发的提交，则阻止提交
           if (timelineData.events.length > 0 && timelineVisible && document.activeElement === inputRef.current) {
             console.log("阻止因输入框聚焦导致的重复提交");
             e.preventDefault();
@@ -682,10 +655,7 @@ function MainContent() {
               onChange={(e) => setQuery(e.target.value)}
               className="flex-1 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/70"
               onFocus={(e) => {
-                // 阻止表单自动提交
                 e.stopPropagation();
-
-                // 只在没有搜索结果且输入框为空时显示热搜
                 if (!query.trim() && timelineData.events.length === 0) {
                   setShowHotSearch(true);
                 }
@@ -693,7 +663,6 @@ function MainContent() {
             />
 
             <div className="flex items-center">
-              {/* 移除热搜榜按钮，热搜自动显示在下方 */}
               <Select
                 value={dateFilter.option}
                 onValueChange={handleDateFilterChange as (value: string) => void}
@@ -734,7 +703,6 @@ function MainContent() {
             </div>
           </div>
 
-          {/* 自定义日期范围输入 */}
           {dateFilter.option === 'custom' && (
             <div className="flex flex-col sm:flex-row gap-2 mt-3 glass p-3 rounded-xl">
               <div className="flex-1 flex gap-2 items-center">
@@ -760,7 +728,6 @@ function MainContent() {
             </div>
           )}
 
-          {/* 热搜下拉列表 - 在搜索框下方显示，确保不会因为展开而影响已生成内容 */}
           <div className="w-full mx-auto relative z-30">
             <HotSearchDropdown
               visible={searchPosition === 'center' && showHotSearch && !isLoading}
@@ -769,7 +736,6 @@ function MainContent() {
             />
           </div>
 
-          {/* 搜索进度显示 - 移到输入框下方，宽度与搜索框对齐 */}
           <div className="w-full mx-auto mt-4 transition-all duration-300">
             <SearchProgress
               steps={searchProgressSteps}
@@ -782,14 +748,12 @@ function MainContent() {
         </div>
       </form>
 
-      {/* 保留原来的百度热搜榜弹窗，以便保留兼容性 */}
       <BaiduHotList
         visible={showHotList}
         onClose={() => setShowHotList(false)}
         onSelectHotItem={handleHotItemClick}
       />
 
-      {/* 飞行热搜项 */}
       {flyingHotItem && (
         <div
           className="fixed z-50 fly-to-input bg-primary text-primary-foreground px-3 py-1.5 rounded-full text-sm font-medium"
@@ -803,18 +767,16 @@ function MainContent() {
         </div>
       )}
 
-      {/* 移除原有位置的搜索进度显示 */}
-      {/* <div className={`fixed bottom-4 left-0 right-0 w-full max-w-3xl mx-auto px-4 transition-opacity duration-300 ${searchProgressVisible ? 'opacity-100' : 'opacity-0'}`}
-           style={{zIndex: 40}}>
-        <SearchProgress
-          steps={searchProgressSteps}
-          visible={searchProgressVisible}
-          isActive={searchProgressActive}
-        />
-      </div> */}
-
-      {/* 时间轴容器 - 调整了距离顶部的间距，使其在搜索栏展开时仍然可见 */}
+      {/* --- UPDATED: ImpactAssessment always first, then Timeline --- */}
       <div className="flex-1 pt-28 pb-12 px-4 md:px-8 w-full max-w-6xl mx-auto">
+        {(showImpact || timelineVisible) && (
+          <ImpactAssessment
+            query={query}
+            isLoading={isLoading}
+            onRequestImpact={handleRequestImpact}
+          />
+        )}
+
         {(timelineVisible || isLoading) && (
           <div
             ref={timelineRef}
@@ -824,15 +786,6 @@ function MainContent() {
               <div className="mb-6 sm:mb-8 p-3 sm:p-4 glass text-red-500 dark:text-red-300 rounded-lg text-sm sm:text-base">
                 {error}
               </div>
-            )}
-
-            {/* 添加影响评估组件，始终显示在顶部 */}
-            {(showImpact || timelineVisible) && (
-              <ImpactAssessment
-                query={query}
-                isLoading={isLoading}
-                onRequestImpact={handleRequestImpact}
-              />
             )}
 
             {filteredEvents.length > 0 && (
@@ -874,13 +827,13 @@ function MainContent() {
           </div>
         )}
       </div>
+      {/* --- END UPDATED --- */}
 
       <ApiSettings
         open={showSettings}
         onOpenChange={setShowSettings}
       />
 
-      {/* Floating API settings button */}
       {showFloatingButton && (
         <Button
           variant="secondary"

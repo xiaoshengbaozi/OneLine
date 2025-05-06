@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter }
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { StreamCallback } from '@/lib/api';
-import { BarChart3, TrendingUp, Globe2 } from 'lucide-react';
+import { BarChart3, TrendingUp, Globe2, FileText } from 'lucide-react';
 import { ScrollArea } from '@/components/ui/scroll-area';
 
 interface ImpactAssessmentProps {
@@ -19,17 +19,19 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
   const [showImpact, setShowImpact] = useState<boolean>(false);
   const [isLoadingImpact, setIsLoadingImpact] = useState<boolean>(false);
   const [isStreamingImpact, setIsStreamingImpact] = useState<boolean>(false);
-  const [currentStreaming, setCurrentStreaming] = useState<'economic' | 'social' | 'geopolitical' | null>(null);
+  const [currentStreaming, setCurrentStreaming] = useState<'summary' | 'economic' | 'social' | 'geopolitical' | null>(null);
 
   // 用于存储流式响应的ref
   const streamContentRef = useRef<string>('');
 
   // 解析后的影响评估内容
   const [parsedImpact, setParsedImpact] = useState<{
+    summary: string;
     economic: string;
     social: string;
     geopolitical: string;
   }>({
+    summary: '',
     economic: '',
     social: '',
     geopolitical: ''
@@ -54,15 +56,19 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
   useEffect(() => {
     if (!impactContent) return;
 
+    // 新增事件简介匹配
+    const summaryMatch = impactContent.match(/===事件简介===\s*([\s\S]*?)(?=\s*===经济影响===|$)/);
     const economicMatch = impactContent.match(/===经济影响===\s*([\s\S]*?)(?=\s*===社会影响===|$)/);
     const socialMatch = impactContent.match(/===社会影响===\s*([\s\S]*?)(?=\s*===地缘政治影响===|$)/);
     const geopoliticalMatch = impactContent.match(/===地缘政治影响===\s*([\s\S]*?)(?=$)/);
 
+    const summary = summaryMatch?.[1]?.trim() || '';
     const economic = economicMatch?.[1]?.trim() || '';
     const social = socialMatch?.[1]?.trim() || '';
     const geopolitical = geopoliticalMatch?.[1]?.trim() || '';
 
     setParsedImpact({
+      summary,
       economic,
       social,
       geopolitical
@@ -74,8 +80,10 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
         setCurrentStreaming('geopolitical');
       } else if (socialMatch) {
         setCurrentStreaming('social');
-      } else {
+      } else if (economicMatch) {
         setCurrentStreaming('economic');
+      } else {
+        setCurrentStreaming('summary');
       }
     }
   }, [impactContent, isStreamingImpact]);
@@ -86,7 +94,7 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
     setShowImpact(true);
     setImpactContent('');
     streamContentRef.current = '';
-    setCurrentStreaming('economic');
+    setCurrentStreaming('summary');
 
     try {
       // 流式回调处理函数
@@ -165,7 +173,7 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
             影响评估
           </CardTitle>
           <CardDescription>
-            从经济、社会和地缘政治视角分析事件可能的影响
+            从事件简介和各方面视角分析事件的影响
           </CardDescription>
         </CardHeader>
         <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
@@ -183,9 +191,37 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
           )}
 
           {showImpact && (
-            <div className="w-full grid grid-cols-1 md:grid-cols-3 gap-4 mt-2">
+            <div className="w-full flex flex-col gap-4 mt-2">
+              {/* 事件简介卡片 */}
+              <Card className={`glass-card border-0 transition-all duration-300 animate-fade-in shadow-md ${currentStreaming === 'summary' ? 'ring-2 ring-primary/40' : ''}`}>
+                <CardHeader className="p-3 pb-0 flex flex-row items-center space-y-0 bg-purple-500/10 dark:bg-purple-500/5 rounded-t-xl">
+                  <CardTitle className="text-base font-medium flex items-center gap-1.5 text-purple-600 dark:text-purple-400">
+                    <FileText className="h-4 w-4" />
+                    事件简介
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="p-3 pt-2">
+                  <ScrollArea className="h-[150px] sm:h-[180px] md:h-[200px]">
+                    {isLoadingImpact && !parsedImpact.summary ? (
+                      <div className="space-y-2">
+                        <Skeleton className="h-3 w-full rounded-md" />
+                        <Skeleton className="h-3 w-5/6 rounded-md" />
+                        <Skeleton className="h-3 w-4/5 rounded-md" />
+                      </div>
+                    ) : (
+                      <div className="relative">
+                        {renderMarkdown(parsedImpact.summary || '正在分析事件简介...')}
+                        {currentStreaming === 'summary' && (
+                          <div className="stream-cursor"></div>
+                        )}
+                      </div>
+                    )}
+                  </ScrollArea>
+                </CardContent>
+              </Card>
+
               {/* 经济影响卡片 */}
-              <Card className={`glass-card border-0 transition-all duration-300 animate-fade-in shadow-md ${currentStreaming === 'economic' ? 'ring-2 ring-primary/40' : ''}`}>
+              <Card className={`glass-card border-0 transition-all duration-300 animate-fade-in shadow-md ${currentStreaming === 'economic' ? 'ring-2 ring-primary/40' : ''}`} style={{animationDelay: '0.1s'}}>
                 <CardHeader className="p-3 pb-0 flex flex-row items-center space-y-0 bg-orange-500/10 dark:bg-orange-500/5 rounded-t-xl">
                   <CardTitle className="text-base font-medium flex items-center gap-1.5 text-orange-600 dark:text-orange-400">
                     <TrendingUp className="h-4 w-4" />
@@ -193,7 +229,7 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3 pt-2">
-                  <ScrollArea className="h-[120px] sm:h-[150px]">
+                  <ScrollArea className="h-[150px] sm:h-[180px] md:h-[200px]">
                     {isLoadingImpact && !parsedImpact.economic ? (
                       <div className="space-y-2">
                         <Skeleton className="h-3 w-full rounded-md" />
@@ -213,7 +249,7 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
               </Card>
 
               {/* 社会影响卡片 */}
-              <Card className={`glass-card border-0 transition-all duration-300 animate-fade-in shadow-md ${currentStreaming === 'social' ? 'ring-2 ring-primary/40' : ''}`} style={{animationDelay: '0.1s'}}>
+              <Card className={`glass-card border-0 transition-all duration-300 animate-fade-in shadow-md ${currentStreaming === 'social' ? 'ring-2 ring-primary/40' : ''}`} style={{animationDelay: '0.2s'}}>
                 <CardHeader className="p-3 pb-0 flex flex-row items-center space-y-0 bg-blue-500/10 dark:bg-blue-500/5 rounded-t-xl">
                   <CardTitle className="text-base font-medium flex items-center gap-1.5 text-blue-600 dark:text-blue-400">
                     <BarChart3 className="h-4 w-4" />
@@ -221,7 +257,7 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3 pt-2">
-                  <ScrollArea className="h-[120px] sm:h-[150px]">
+                  <ScrollArea className="h-[150px] sm:h-[180px] md:h-[200px]">
                     {isLoadingImpact && !parsedImpact.social ? (
                       <div className="space-y-2">
                         <Skeleton className="h-3 w-full rounded-md" />
@@ -241,7 +277,7 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
               </Card>
 
               {/* 地缘政治影响卡片 */}
-              <Card className={`glass-card border-0 transition-all duration-300 animate-fade-in shadow-md ${currentStreaming === 'geopolitical' ? 'ring-2 ring-primary/40' : ''}`} style={{animationDelay: '0.2s'}}>
+              <Card className={`glass-card border-0 transition-all duration-300 animate-fade-in shadow-md ${currentStreaming === 'geopolitical' ? 'ring-2 ring-primary/40' : ''}`} style={{animationDelay: '0.3s'}}>
                 <CardHeader className="p-3 pb-0 flex flex-row items-center space-y-0 bg-green-500/10 dark:bg-green-500/5 rounded-t-xl">
                   <CardTitle className="text-base font-medium flex items-center gap-1.5 text-green-600 dark:text-green-400">
                     <Globe2 className="h-4 w-4" />
@@ -249,7 +285,7 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="p-3 pt-2">
-                  <ScrollArea className="h-[120px] sm:h-[150px]">
+                  <ScrollArea className="h-[150px] sm:h-[180px] md:h-[200px]">
                     {isLoadingImpact && !parsedImpact.geopolitical ? (
                       <div className="space-y-2">
                         <Skeleton className="h-3 w-full rounded-md" />
