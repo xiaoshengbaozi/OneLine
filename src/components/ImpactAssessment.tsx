@@ -4,7 +4,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
-import { StreamCallback } from '@/lib/api';
+import type { StreamCallback } from '@/lib/api';
 import { BarChart3, TrendingUp, Globe2, FileText } from 'lucide-react';
 import { formatMarkdownText } from '@/lib/markdown';
 
@@ -158,7 +158,7 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
   }
 
   return (
-    <div className="w-full max-w-3xl mx-auto mb-8 impact-assessment-container">
+    <div className="w-full max-w-3xl mx-auto mb-2 sm:mb-4 impact-assessment-container">
       <Card className="glass-card rounded-xl overflow-hidden">
         <CardHeader className="p-3 sm:p-6">
           <CardTitle className="text-base sm:text-xl flex items-center gap-2">

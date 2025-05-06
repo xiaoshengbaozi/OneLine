@@ -231,13 +231,36 @@
     max-width: calc(100% - 1rem);
   }
 
-  /* Ensure timeline has enough top margin to not be hidden by search */
+  /* 确保时间轴有足够的顶部边距不被搜索框遮挡 */
   .timeline-container {
-    @apply mt-24 pt-10; /* Increased top padding/margin */
+    @apply mt-24 pt-6; /* Increased top padding/margin */
+  }
+
+  /* 修复时间轴卡片在移动端的样式 */
+  .event-card {
+    margin-left: -8px; /* 调整在移动设备上卡片的位置，避免偏移 */
+    width: calc(100% + 8px);
+  }
+
+  /* 优化卡片内间距 */
+  .event-card .p-2 {
+    padding: 0.375rem;
+  }
+
+  .event-card .text-xs {
+    font-size: 0.7rem;
+    line-height: 1.2;
+  }
+
+  /* 优化事件日期显示 */
+  .event-date {
+    max-width: 60px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.6rem;
   }
 }
 
-/* Ensure proper spacing for small mobile devices */
+/* 确保在超小屏幕设备上也能正常显示 */
 @media (max-width: 375px) {
   .search-container-top {
     @apply top-1;
@@ -248,14 +271,29 @@
   }
 
   .timeline-container {
-    @apply mt-28 pt-12; /* Further increase margin/padding for extra small screens */
+    @apply mt-28 pt-8; /* Further increase margin/padding for extra small screens */
+  }
+
+  /* 进一步减小超小屏幕上的事件卡片内边距 */
+  .event-card .p-2 {
+    padding: 0.3rem;
   }
 }
 
-/* Fix for the ImpactAssessment component on mobile */
+/* 优化影响评估组件在移动端的显示 */
 @media (max-width: 640px) {
   .impact-assessment-container {
-    @apply mt-16 pt-4; /* Add top margin/padding for impact assessment */
+    @apply mt-14 pt-2 mb-0; /* 减少顶部边距和底部边距 */
+  }
+
+  /* 减少移动端上ImpactAssessment卡片的外边距 */
+  .impact-assessment-container .glass-card {
+    margin-bottom: 0;
+  }
+
+  /* 优化影响评估卡片的内边距 */
+  .impact-assessment-container .p-3 {
+    padding: 0.5rem;
   }
 }
 
@@ -318,16 +356,22 @@
 /* 卡片样式优化 */
 .event-card {
   @apply glass-card rounded-xl overflow-hidden transform transition-all duration-300;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
 }
 
 .event-card:hover {
   @apply shadow-xl -translate-y-1;
 }
 
+/* 优化事件日期样式，尤其是移动端 */
 .event-date {
   @apply glass text-xs sm:text-sm text-muted-foreground whitespace-nowrap
          mb-1 sm:mb-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full;
   font-size: 0.65rem;
+  max-width: 70px;
+  text-align: center;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 /* 搜索进度组件样式 */

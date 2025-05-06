@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import { getEnvConfig } from '@/lib/env';
-import { ApiConfig } from '@/types';
+import type { ApiConfig } from '@/types';
 
 export const maxDuration = 60; // Set maximum duration to 60 seconds (Vercel hobby plan limit)
 export const dynamic = 'force-dynamic';

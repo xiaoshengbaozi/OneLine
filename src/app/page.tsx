@@ -846,7 +846,7 @@ function MainContent() {
       <div className="flex-1 pt-28 pb-12 px-2 sm:px-4 md:px-8 w-full max-w-6xl mx-auto">
         {/* Impact Analysis Section */}
         {(showImpact || timelineVisible) && (
-          <div className="mt-8 sm:mt-0">
+          <div className="mt-4 sm:mt-0 mb-0">
             <ImpactAssessment
               query={query}
               isLoading={isLoading}
@@ -859,7 +859,7 @@ function MainContent() {
         {(timelineVisible || isLoading) && (
           <div
             ref={timelineRef}
-            className={`timeline-container ${timelineVisible ? 'timeline-container-visible' : ''}`}
+            className={`timeline-container mt-2 sm:mt-24 ${timelineVisible ? 'timeline-container-visible' : ''}`}
           >
             {error && (
               <div className="mb-6 sm:mb-8 p-3 sm:p-4 glass text-red-500 dark:text-red-300 rounded-lg text-sm sm:text-base">
