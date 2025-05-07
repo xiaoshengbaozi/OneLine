@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Timeline } from '@/components/Timeline';
 import { ImpactAssessment } from '@/components/ImpactAssessment';
+import { EventSummary } from '@/components/EventSummary';
 import { ApiSettings } from '@/components/ApiSettings';
 import { ApiProvider, useApi } from '@/contexts/ApiContext';
 import { ThemeToggle } from '@/components/ui/theme-toggle';
@@ -81,8 +82,9 @@ function MainContent() {
 
   const lastSearchQuery = useRef<string>('');
 
-  // For event description (事件简介)
+  // For event summary (事件概述)
   const [eventSummary, setEventSummary] = useState<string | null>(null);
+  const [showEventSummary, setShowEventSummary] = useState<boolean>(false);
 
   // For impact assessment content (to parse summary)
   const [impactContent, setImpactContent] = useState<string | null>(null);
@@ -269,6 +271,12 @@ function MainContent() {
     }
   }, [timelineVisible, timelineData.events.length]);
 
+  // 处理提取到的事件概括
+  const handleSummaryExtracted = (summary: string) => {
+    setEventSummary(summary);
+    setShowEventSummary(true);
+  };
+
   // For impact assessment summary extraction
   const extractSummary = (content: string): string => {
     if (!content) return '';
@@ -293,8 +301,12 @@ function MainContent() {
     if (impactContent) {
       const summary = extractSummary(impactContent);
       setParsedImpact(prev => ({ ...prev, summary }));
+      if (summary && !eventSummary) {
+        setEventSummary(summary);
+        setShowEventSummary(true);
+      }
     }
-  }, [impactContent]);
+  }, [impactContent, eventSummary]);
 
   const sortEvents = (events: TimelineEvent[]): TimelineEvent[] => {
     return [...events].sort((a, b) => {
@@ -362,6 +374,8 @@ function MainContent() {
     setIsLoading(true);
     setError('');
     setShowImpact(true);
+    setShowEventSummary(false);
+    setEventSummary(null);
     setImpactContent(null);
     setParsedImpact(null);
 
@@ -844,12 +858,24 @@ function MainContent() {
 
       {/* Split impact analysis and timeline */}
       <div className="flex-1 pt-16 pb-12 px-2 sm:px-4 md:px-8 w-full max-w-6xl mx-auto">
+        {/* 事件概括板块 */}
+        {(showEventSummary || isLoading) && (
+          <div className="mt-4 sm:mt-0 mb-4">
+            <EventSummary
+              summary={eventSummary}
+              isLoading={isLoading && !eventSummary}
+            />
+          </div>
+        )}
+
+        {/* 影响分析板块 */}
         {(showImpact || timelineVisible) && (
           <div className="mt-4 sm:mt-0 mb-0">
             <ImpactAssessment
               query={query}
               isLoading={isLoading}
               onRequestImpact={handleRequestImpact}
+              onSummaryExtracted={handleSummaryExtracted}
             />
           </div>
         )}

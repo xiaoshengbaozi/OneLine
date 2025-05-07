@@ -12,14 +12,16 @@ interface ImpactAssessmentProps {
   query: string;
   isLoading?: boolean;
   onRequestImpact: (query: string, streamCallback?: StreamCallback) => Promise<string>;
+  onSummaryExtracted?: (summary: string) => void;
 }
 
-export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: ImpactAssessmentProps) {
+export function ImpactAssessment({ query, isLoading = false, onRequestImpact, onSummaryExtracted }: ImpactAssessmentProps) {
   const [impactContent, setImpactContent] = useState<string>('');
   const [showImpact, setShowImpact] = useState<boolean>(false);
   const [isLoadingImpact, setIsLoadingImpact] = useState<boolean>(false);
   const [isStreamingImpact, setIsStreamingImpact] = useState<boolean>(false);
   const [currentStreaming, setCurrentStreaming] = useState<'economic' | 'social' | 'geopolitical' | null>(null);
+  const [eventSummary, setEventSummary] = useState<string | null>(null);
 
   // 用于存储流式响应的ref
   const streamContentRef = useRef<string>('');
@@ -54,7 +56,19 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
   useEffect(() => {
     if (!impactContent) return;
 
-    // 移除事件简介匹配，只关注影响部分
+    // 提取事件简介
+    const summaryMatch = impactContent.match(/===事件简介===\s*([\s\S]*?)(?=\s*===经济影响===|$)/);
+    const summaryContent = summaryMatch?.[1]?.trim() || '';
+
+    if (summaryContent && summaryContent !== eventSummary) {
+      setEventSummary(summaryContent);
+      // 如果存在回调函数，将提取的事件概括传递给父组件
+      if (onSummaryExtracted) {
+        onSummaryExtracted(summaryContent);
+      }
+    }
+
+    // 提取影响部分
     const economicMatch = impactContent.match(/===经济影响===\s*([\s\S]*?)(?=\s*===社会影响===|$)/);
     const socialMatch = impactContent.match(/===社会影响===\s*([\s\S]*?)(?=\s*===地缘政治影响===|$)/);
     const geopoliticalMatch = impactContent.match(/===地缘政治影响===\s*([\s\S]*?)(?=$)/);
@@ -75,11 +89,14 @@ export function ImpactAssessment({ query, isLoading = false, onRequestImpact }: 
         setCurrentStreaming('geopolitical');
       } else if (socialMatch) {
         setCurrentStreaming('social');
-      } else {
+      } else if (economicMatch) {
         setCurrentStreaming('economic');
+      } else {
+        // 如果只有事件简介部分，不设置流传输的类型
+        setCurrentStreaming(null);
       }
     }
-  }, [impactContent, isStreamingImpact]);
+  }, [impactContent, isStreamingImpact, eventSummary, onSummaryExtracted]);
 
   const handleRequestImpact = async () => {
     setIsLoadingImpact(true);
