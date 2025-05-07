@@ -396,7 +396,8 @@
 
 /* 优化时间轴中的AI分析按钮 */
 .event-card .ai-analysis-btn {
-  @apply text-xs sm:text-sm rounded-full h-7 sm:h-8
+  font-size: 0.75rem; line-height: 1rem;
+  @apply sm:text-sm rounded-full h-7 sm:h-8
          px-2 sm:px-3 ml-1 gap-1.5
          backdrop-blur-sm transition-colors;
   background-color: rgba(var(--primary), 0.08);
@@ -448,7 +449,7 @@
 }
 
 .hot-value {
-  @apply text-xs opacity-70;
+  font-size: 0.75rem; line-height: 1rem; @apply opacity-70;
 }
 
 /* 热搜下拉组件样式 */
