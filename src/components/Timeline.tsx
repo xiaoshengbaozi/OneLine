@@ -8,6 +8,7 @@ import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import type { StreamCallback } from '@/lib/api';
+import { Clock, FileText } from 'lucide-react';
 
 interface TimelineProps {
   events: TimelineEvent[];
@@ -205,17 +206,31 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
 
     return (
       <div className="w-full max-w-3xl mx-auto">
+        {/* 添加标题区域 */}
+        <Card className="glass-card rounded-xl overflow-hidden mb-4 timeline-title-card">
+          <CardHeader className="p-3 sm:p-6">
+            <CardTitle className="text-base sm:text-xl flex items-center gap-2">
+              <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+              时间脉络
+            </CardTitle>
+            <CardDescription className="text-xs sm:text-sm">
+              按时间顺序了解事件发展
+            </CardDescription>
+          </CardHeader>
+        </Card>
+
         <div className="flex flex-col gap-4 sm:gap-6 py-4 sm:py-8">
           {skeletonItems.map((item) => (
             <div key={item.id} className="flex gap-1 sm:gap-4">
-              <div className="flex flex-col items-center">
-                <Skeleton className="h-4 sm:h-6 w-12 sm:w-24 mb-2 rounded-lg" />
-                <div className="w-px h-full bg-border/50 rounded-full" />
-              </div>
+              {/* 不再渲染外部时间标注 */}
               <div className="flex-1 min-w-0">
                 <Card className="glass-card rounded-lg">
                   <CardHeader className="p-2 sm:p-6">
-                    <Skeleton className="h-4 sm:h-6 w-[95%] mb-2 rounded-lg" />
+                    <div className="flex justify-between items-center mb-2">
+                      <Skeleton className="h-4 sm:h-6 w-[70%] rounded-lg" />
+                      {/* 时间标注现在在卡片内部 */}
+                      <Skeleton className="h-4 sm:h-5 w-20 rounded-full" />
+                    </div>
                     <Skeleton className="h-3 sm:h-4 w-[50%] rounded-lg" />
                   </CardHeader>
                   <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
@@ -232,24 +247,41 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
 
   return (
     <div className="w-full max-w-3xl mx-auto">
+      {/* 添加标题区域 */}
+      <Card className="glass-card rounded-xl overflow-hidden mb-4 timeline-title-card">
+        <CardHeader className="p-3 sm:p-6">
+          <CardTitle className="text-base sm:text-xl flex items-center gap-2">
+            <Clock className="h-4 w-4 sm:h-5 sm:w-5" />
+            时间脉络
+          </CardTitle>
+          <CardDescription className="text-xs sm:text-sm">
+            按时间顺序了解事件发展
+          </CardDescription>
+        </CardHeader>
+      </Card>
+
       <div className="flex flex-col gap-3 sm:gap-6 py-2 sm:py-8">
         {events.map((event, index) => {
           const isExpanded = expandedEvents.has(event.id);
           return (
-            <div key={event.id} className="flex gap-1 sm:gap-4 animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
-              <div className="flex flex-col items-center">
-                <div className="event-date">
-                  {event.date}
-                </div>
-                <div className="w-px grow bg-border/50 mx-auto rounded-full" />
+            <div key={event.id} className="animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
+              <div className="relative">
+                {/* 卡片右侧的时间轴线 */}
+                <div className="absolute right-8 top-0 bottom-0 w-px bg-border/50 mx-auto rounded-full"></div>
                 {index < events.length - 1 && (
-                  <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-amber-400 animate-pulse" />
+                  <div className="absolute right-8 bottom-0 transform translate-x-[-6px] w-3 h-3 rounded-full bg-amber-400 animate-pulse"></div>
                 )}
-              </div>
-              <div className="flex-1 pb-2 sm:pb-4 w-full min-w-0">
-                <Card className="event-card w-full">
+
+                <Card className="event-card timeline-card w-full">
                   <CardHeader className="p-2 sm:p-6 pb-0 sm:pb-2">
-                    <CardTitle className="text-sm sm:text-lg break-words leading-tight sm:leading-normal">{event.title}</CardTitle>
+                    <div className="flex justify-between items-start gap-2">
+                      <CardTitle className="text-sm sm:text-lg break-words leading-tight sm:leading-normal">{event.title}</CardTitle>
+                      {/* 时间标注现在在卡片内部 */}
+                      <div className="timeline-date-badge whitespace-nowrap text-xs sm:text-sm px-2 sm:px-3 py-1 rounded-full flex items-center gap-1.5 shrink-0">
+                        <Clock className="h-3 w-3 sm:h-3.5 sm:w-3.5" />
+                        <span>{event.date}</span>
+                      </div>
+                    </div>
                     {event.source && (
                       <CardDescription className="text-[10px] sm:text-xs mt-1 line-clamp-1">
                         来源: {event.sourceUrl ? (
@@ -284,8 +316,9 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                       variant="outline"
                       size="sm"
                       onClick={() => handleShowDetails(event)}
-                      className="text-xs sm:text-sm rounded-full h-7 sm:h-8 px-2 sm:px-3 ml-1"
+                      className="text-xs sm:text-sm rounded-full h-7 sm:h-8 px-2 sm:px-3 ml-1 gap-1.5 ai-analysis-btn"
                     >
+                      <FileText className="h-3.5 w-3.5" />
                       AI分析
                     </Button>
                   </CardFooter>
@@ -347,6 +380,38 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
           49% { opacity: 1; }
           50% { opacity: 0; }
           100% { opacity: 0; }
+        }
+
+        /* 添加时间轴卡片新样式 */
+        .timeline-card {
+          backdrop-filter: blur(15px);
+          background-color: rgba(255, 255, 255, 0.5);
+          border: 1px solid rgba(255, 255, 255, 0.3);
+          border-radius: 0.8rem;
+          box-shadow: 0 4px 20px rgba(0, 0, 0, 0.05);
+          transition: all 0.3s ease;
+        }
+
+        .dark .timeline-card {
+          background-color: rgba(30, 30, 30, 0.5);
+          border: 1px solid rgba(80, 80, 80, 0.3);
+        }
+
+        .timeline-card:hover {
+          transform: translateY(-2px);
+          box-shadow: 0 8px 25px rgba(0, 0, 0, 0.1);
+        }
+
+        .timeline-date-badge {
+          background-color: rgba(var(--primary), 0.1);
+          color: hsl(var(--primary));
+          border-left: 3px solid hsl(var(--primary));
+          box-shadow: 0 0 10px rgba(var(--primary), 0.1);
+          font-weight: 500;
+        }
+
+        .dark .timeline-date-badge {
+          background-color: rgba(var(--primary), 0.2);
         }
       `}</style>
     </div>

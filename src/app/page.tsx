@@ -369,11 +369,11 @@ function MainContent() {
     }
   };
 
-  // --- UPDATED fetchData: ImpactAssessment first, then Timeline after a delay ---
+  // --- UPDATED fetchData: More intelligent analysis based on the query type ---
   const fetchData = async () => {
     setIsLoading(true);
     setError('');
-    setShowImpact(true);
+    setShowImpact(false); // Initially don't show impact until we determine if it's relevant
     setShowEventSummary(false);
     setEventSummary(null);
     setImpactContent(null);
@@ -416,26 +416,31 @@ function MainContent() {
         queryWithDateFilter += dateRangeText;
       }
 
-      // 优先获取影响评估，确保在UI上先显示影响评估的内容，让用户更快看到结果
-      if (progressCallback) {
-        progressCallback('正在分析事件影响', 'pending');
+      // 判断查询类型以决定适当的分析方法
+      const shouldAnalyzeImpact = determineIfShouldAnalyzeImpact(query);
+      if (shouldAnalyzeImpact) {
+        setShowImpact(true);
+
+        // 获取影响评估内容（流式）
+        if (progressCallback) {
+          progressCallback('正在分析事件影响', 'pending');
+        }
+
+        let impactText = '';
+        fetchImpactAssessment(
+          queryWithDateFilter,
+          apiConfig,
+          progressCallback,
+          (chunk, isDone) => {
+            impactText += chunk;
+            setImpactContent(impactText);
+          }
+        ).catch(err => {
+          console.error('Error fetching impact assessment:', err);
+        });
       }
 
-      // 获取影响评估内容（流式）
-      let impactText = '';
-      fetchImpactAssessment(
-        queryWithDateFilter,
-        apiConfig,
-        progressCallback,
-        (chunk, isDone) => {
-          impactText += chunk;
-          setImpactContent(impactText);
-        }
-      ).catch(err => {
-        console.error('Error fetching impact assessment:', err);
-      });
-
-      // 在短暂延迟后（让影响评估有时间开始显示）生成时间轴
+      // 在短暂延迟后生成时间轴
       setTimeout(async () => {
         try {
           // 再获取时间轴数据
@@ -484,7 +489,7 @@ function MainContent() {
         } finally {
           setIsLoading(false);
         }
-      }, 1000); // 1秒延迟，让影响评估先开始显示
+      }, shouldAnalyzeImpact ? 1000 : 0); // 如果有影响分析，延迟1秒，否则立即开始
 
     } catch (err: unknown) {
       const errorMessage = err instanceof Error ? err.message : '发生错误，请稍后再试';
@@ -501,6 +506,27 @@ function MainContent() {
     }
   };
   // --- END UPDATED fetchData ---
+
+  // 判断查询是否适合做影响评估分析
+  const determineIfShouldAnalyzeImpact = (queryText: string): boolean => {
+    // 检查查询内容是否是事件或话题，而不是简单的人物、概念或其他不适合影响分析的内容
+
+    // 判断是否是热点事件、社会现象、政治事件、经济事件、国际关系等有明显影响的主题
+    const impactAnalysisKeywords = [
+      '事件', '冲突', '危机', '战争', '协议', '签署', '宣布', '政策', '改革', '谈判',
+      '疫情', '灾害', '事故', '抗议', '示威', '选举', '公投', '会谈', '会议', '峰会',
+      '事故', '决策', '立法', '判决', '制裁', '合作', '争端', '矛盾', '问题', '风波',
+      '关系', '纠纷', '协议', '条约', '法案', '通过', '改变', '变化', '影响', '改革'
+    ];
+
+    // 检查查询中是否包含这些关键词
+    const hasImpactKeyword = impactAnalysisKeywords.some(keyword =>
+      queryText.includes(keyword)
+    );
+
+    // 简单的规则：查询文本较长（可能是描述性的事件）或包含影响分析关键词
+    return queryText.length > 8 || hasImpactKeyword;
+  };
 
   const formatDate = (date: Date | undefined): string => {
     if (!date) return '';

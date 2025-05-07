@@ -83,6 +83,13 @@
          shadow-lg hover:shadow-xl transition-all duration-300;
 }
 
+/* 新增强化版毛玻璃效果 */
+.glass-card-enhanced {
+  @apply backdrop-blur-xl bg-white/50 dark:bg-gray-900/50
+         border border-white/30 dark:border-gray-800/40
+         shadow-lg hover:shadow-xl transition-all duration-300;
+}
+
 .glass-input {
   @apply backdrop-blur-sm bg-white/70 dark:bg-gray-900/70
          border border-white/30 dark:border-gray-800/40
@@ -352,7 +359,7 @@
          transition-all duration-700 ease-in-out;
 }
 
-/* timeline-container相关的样式部分 */
+/* 时间轴相关样式 */
 .timeline-container {
   @apply mt-24 opacity-0 transition-opacity duration-700 w-full;
 }
@@ -361,17 +368,53 @@
   @apply opacity-100;
 }
 
-/* 卡片样式优化 */
+/* 时间轴卡片样式优化 */
 .event-card {
-  @apply glass-card rounded-xl overflow-hidden transform transition-all duration-300;
-  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.05);
+  @apply glass-card-enhanced rounded-xl overflow-hidden transform transition-all duration-300;
+  box-shadow: 0 4px 15px rgba(0, 0, 0, 0.06);
 }
 
 .event-card:hover {
   @apply shadow-xl -translate-y-1;
+  box-shadow: 0 8px 25px rgba(0, 0, 0, 0.08);
 }
 
-/* 优化事件日期样式，尤其是移动端 */
+/* 更新时间轴日期标识样式 - 现在在卡片内部 */
+.timeline-date-badge {
+  @apply backdrop-blur-sm text-xs sm:text-sm
+         px-2 sm:px-3 py-0.5 sm:py-1 rounded-full;
+  background-color: rgba(var(--primary), 0.1);
+  color: hsl(var(--primary));
+  border-left: 3px solid hsl(var(--primary));
+  box-shadow: 0 0 10px rgba(var(--primary), 0.1);
+  transition: all 0.3s ease;
+}
+
+.dark .timeline-date-badge {
+  background-color: rgba(var(--primary), 0.15);
+}
+
+/* 优化时间轴中的AI分析按钮 */
+.event-card .ai-analysis-btn {
+  font-size: 0.75rem; line-height: 1rem;
+  @apply sm:text-sm rounded-full h-7 sm:h-8
+         px-2 sm:px-3 ml-1 gap-1.5
+         backdrop-blur-sm transition-colors;
+  background-color: rgba(var(--primary), 0.08);
+  border: 1px solid rgba(var(--primary), 0.2);
+}
+
+.event-card .ai-analysis-btn:hover {
+  background-color: rgba(var(--primary), 0.15);
+}
+
+/* 标题卡片样式 */
+.timeline-title-card {
+  @apply mb-4;
+  box-shadow: 0 4px 25px rgba(0, 0, 0, 0.1);
+}
+
+/* 卡片样式优化（保留原 event-date 以兼容旧代码） */
 .event-date {
   @apply glass text-xs sm:text-sm text-muted-foreground whitespace-nowrap
          mb-1 sm:mb-2 px-2 sm:px-3 py-1 sm:py-1.5 rounded-full;
@@ -406,7 +449,7 @@
 }
 
 .hot-value {
-  @apply text-xs opacity-70;
+  font-size: 0.75rem; line-height: 1rem; @apply opacity-70;
 }
 
 /* 热搜下拉组件样式 */
@@ -510,4 +553,32 @@
 /* 流式输出打字光标样式 */
 .stream-cursor {
   @apply inline-block h-4 w-2 bg-primary/80 align-middle ml-1 animate-cursor-blink;
+}
+
+/* 媒体查询修改 */
+@media (max-width: 640px) {
+  /* 时间轴容器在移动端的边距调整 */
+  .timeline-container {
+    @apply mt-8 pt-2;
+  }
+
+  /* 优化标题在移动端的显示 */
+  .timeline-title-card {
+    @apply mb-3;
+  }
+
+  /* 修复时间轴卡片在移动端的样式 */
+  .event-card {
+    @apply w-full;
+  }
+
+  /* 优化卡片内间距 */
+  .event-card .p-2 {
+    padding: 0.5rem;
+  }
+
+  .timeline-date-badge {
+    font-size: 0.7rem;
+    padding: 0.25rem 0.5rem;
+  }
 }
