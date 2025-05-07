@@ -7,7 +7,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Avatar } from '@/components/ui/avatar';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
-import { StreamCallback } from '@/lib/api';
+import type { StreamCallback } from '@/lib/api';
 
 interface TimelineProps {
   events: TimelineEvent[];
@@ -207,19 +207,19 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
       <div className="w-full max-w-3xl mx-auto">
         <div className="flex flex-col gap-4 sm:gap-6 py-4 sm:py-8">
           {skeletonItems.map((item) => (
-            <div key={item.id} className="flex gap-2 sm:gap-4">
+            <div key={item.id} className="flex gap-1 sm:gap-4">
               <div className="flex flex-col items-center">
-                <Skeleton className="h-5 sm:h-6 w-16 sm:w-24 mb-2 rounded-lg" />
+                <Skeleton className="h-4 sm:h-6 w-12 sm:w-24 mb-2 rounded-lg" />
                 <div className="w-px h-full bg-border/50 rounded-full" />
               </div>
-              <div className="flex-1">
+              <div className="flex-1 min-w-0">
                 <Card className="glass-card rounded-lg">
-                  <CardHeader className="p-3 sm:p-6">
-                    <Skeleton className="h-5 sm:h-6 w-3/4 mb-2 rounded-lg" />
-                    <Skeleton className="h-3 sm:h-4 w-1/2 rounded-lg" />
+                  <CardHeader className="p-2 sm:p-6">
+                    <Skeleton className="h-4 sm:h-6 w-[95%] mb-2 rounded-lg" />
+                    <Skeleton className="h-3 sm:h-4 w-[50%] rounded-lg" />
                   </CardHeader>
-                  <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
-                    <Skeleton className="h-16 sm:h-20 w-full rounded-lg" />
+                  <CardContent className="p-2 sm:p-6 pt-0 sm:pt-0">
+                    <Skeleton className="h-12 sm:h-20 w-full rounded-lg" />
                   </CardContent>
                 </Card>
               </div>
@@ -232,22 +232,11 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
 
   return (
     <div className="w-full max-w-3xl mx-auto">
-      {summary && (
-        <Card className="mb-6 sm:mb-8 glass-card rounded-xl">
-          <CardHeader className="p-4 sm:p-6">
-            <CardTitle className="text-lg sm:text-xl">事件总结</CardTitle>
-          </CardHeader>
-          <CardContent className="p-4 sm:p-6 pt-0 sm:pt-0">
-            <p className="text-sm sm:text-base">{summary}</p>
-          </CardContent>
-        </Card>
-      )}
-
-      <div className="flex flex-col gap-4 sm:gap-6 py-4 sm:py-8">
+      <div className="flex flex-col gap-3 sm:gap-6 py-2 sm:py-8">
         {events.map((event, index) => {
           const isExpanded = expandedEvents.has(event.id);
           return (
-            <div key={event.id} className="flex gap-2 sm:gap-4 animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
+            <div key={event.id} className="flex gap-1 sm:gap-4 animate-slide-up" style={{ animationDelay: `${index * 0.1}s` }}>
               <div className="flex flex-col items-center">
                 <div className="event-date">
                   {event.date}
@@ -257,12 +246,12 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                   <div className="w-2 h-2 sm:w-3 sm:h-3 rounded-full bg-amber-400 animate-pulse" />
                 )}
               </div>
-              <div className="flex-1 pb-3 sm:pb-4">
-                <Card className="event-card">
-                  <CardHeader className="p-3 sm:p-6">
-                    <CardTitle className="text-base sm:text-lg">{event.title}</CardTitle>
+              <div className="flex-1 pb-2 sm:pb-4 w-full min-w-0">
+                <Card className="event-card w-full">
+                  <CardHeader className="p-2 sm:p-6 pb-0 sm:pb-2">
+                    <CardTitle className="text-sm sm:text-lg break-words leading-tight sm:leading-normal">{event.title}</CardTitle>
                     {event.source && (
-                      <CardDescription className="text-xs mt-1">
+                      <CardDescription className="text-[10px] sm:text-xs mt-1 line-clamp-1">
                         来源: {event.sourceUrl ? (
                           <a
                             href={event.sourceUrl}
@@ -277,17 +266,17 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                     )}
                     {renderPeople(event.people)}
                   </CardHeader>
-                  <CardContent className="p-3 sm:p-6 pt-0 sm:pt-0">
-                    <p className={`text-sm sm:text-base ${isExpanded ? '' : 'line-clamp-3'}`}>
+                  <CardContent className="p-2 sm:p-6 pt-1 sm:pt-2">
+                    <p className={`text-xs sm:text-base ${isExpanded ? '' : 'line-clamp-3'} leading-tight sm:leading-normal`}>
                       {event.description}
                     </p>
                   </CardContent>
-                  <CardFooter className="p-3 sm:p-6 pt-0 sm:pt-0 flex justify-between">
+                  <CardFooter className="p-2 sm:p-6 pt-0 sm:pt-0 flex justify-between">
                     <Button
                       variant="ghost"
                       size="sm"
                       onClick={() => toggleExpand(event.id)}
-                      className="text-xs sm:text-sm rounded-full"
+                      className="text-xs sm:text-sm rounded-full h-7 sm:h-8 px-2 sm:px-3 min-w-0"
                     >
                       {isExpanded ? '收起' : '展开'}
                     </Button>
@@ -295,7 +284,7 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
                       variant="outline"
                       size="sm"
                       onClick={() => handleShowDetails(event)}
-                      className="text-xs sm:text-sm rounded-full"
+                      className="text-xs sm:text-sm rounded-full h-7 sm:h-8 px-2 sm:px-3 ml-1"
                     >
                       AI分析
                     </Button>
@@ -308,14 +297,14 @@ export function Timeline({ events, isLoading = false, onRequestDetails, summary 
       </div>
 
       <Dialog open={showDetails} onOpenChange={setShowDetails}>
-        <DialogContent className="max-w-md sm:max-w-2xl p-4 sm:p-6 glass-card rounded-xl">
+        <DialogContent className="max-w-[95vw] sm:max-w-2xl p-3 sm:p-6 glass-card rounded-xl">
           <DialogHeader>
-            <DialogTitle className="text-base sm:text-lg">{selectedEvent?.title}</DialogTitle>
+            <DialogTitle className="text-sm sm:text-lg break-words">{selectedEvent?.title}</DialogTitle>
             <DialogDescription className="text-xs sm:text-sm">
               {selectedEvent?.date}
             </DialogDescription>
           </DialogHeader>
-          <div className="mt-2 sm:mt-4 max-h-[60vh] overflow-y-auto">
+          <div className="mt-2 sm:mt-4 max-h-[50vh] sm:max-h-[60vh] overflow-y-auto">
             {!isLoadingDetails || (isStreamingDetails && detailsContent) ? (
               <div className="relative">
                 {renderMarkdown(detailsContent)}

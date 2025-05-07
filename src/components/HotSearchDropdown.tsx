@@ -102,12 +102,12 @@ export function HotSearchDropdown({ onSelectHotItem, visible, hasSearchResults =
                 onClick={() => onSelectHotItem(item.title)}
               >
                 <div className="flex items-center">
-                  <span className={`hot-rank mr-2 ${index < 3 ? 'top-' + (index + 1) : ''}`}>
+                  <span className={`hot-rank mr-1 sm:mr-2 text-[10px] sm:text-xs ${index < 3 ? 'top-' + (index + 1) : ''}`}>
                     {index + 1}
                   </span>
-                  <span className="hot-title text-xs line-clamp-1">{item.title}</span>
+                  <span className="hot-title text-xs line-clamp-1 max-w-[75%] sm:max-w-[85%]">{item.title}</span>
                 </div>
-                <div className="ml-6 mt-0.5">
+                <div className="ml-4 sm:ml-6 mt-0.5">
                   <span className="hot-value text-[10px] text-muted-foreground">{item.hot}</span>
                 </div>
               </div>
