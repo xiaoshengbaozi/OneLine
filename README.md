@@ -175,6 +175,6 @@ OneLine可以轻松部署到Vercel平台：
 * 感谢所有贡献者和使用者的支持和反馈
 
 ## 📊 项目状态
-
+[![Star History Chart](https://api.star-history.com/svg?repos=chengtx809/OneLine&type=Date)](https://www.star-history.com/#chengtx809/OneLine&Date)
 * GitHub Stars: ![GitHub Stars](https://img.shields.io/github/stars/chengtx809/OneLine?style=social)
 * GitHub Forks: ![GitHub Forks](https://img.shields.io/github/forks/chengtx809/OneLine?style=social)

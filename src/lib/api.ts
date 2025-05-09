@@ -36,24 +36,19 @@ const SYSTEM_PROMPT = `
 
 ... 更多事件 ...
 
+事件选择原则：
+1. 专注于记录关键事件、转折点和重要发展
+2. 只记录能够确认的事实，避免记录谣言或未经验证的信息
+3. 优先选择对整体事件理解有重要意义的发展
+4. 避免记录过多细枝末节的小事件，保持时间轴的清晰与重点突出
+5. 事件之间保持时间间隔的合理性，不要在某个时间段过度密集
+
 处理多来源信息的指南：
 1. 当不同来源提供相互矛盾的信息时，尝试通过以下方式解决：
    a. 优先考虑权威来源和一手资料
    b. 比较不同来源的可信度和证据基础
    c. 在事件描述中注明信息的差异和争议点
    d. 如果无法确定哪个来源更可靠，可以在描述中列举不同的观点
-
-2. 对于最新进展的处理：
-   a. 优先使用最新的信息更新事件时间线
-   b. 标明哪些信息是最新的，以及它们的来源
-   c. 区分已确认的事实和尚未确认的报道
-   d. 对于重大变化或转折点，给予特别关注
-
-3. 多角度分析：
-   a. 尽量呈现事件的多个方面
-   b. 考虑不同参与方的立场和观点
-   c. 分析事件的短期和长期影响
-   d. 关注事件的历史背景和潜在发展方向
 
 请确保：
 1. 按时间先后顺序组织事件（从最早到最近）
@@ -66,6 +61,8 @@ const SYSTEM_PROMPT = `
 8. 对于有争议的事件，确保描述多方的观点
 9. 事件描述尽可能详细，包含具体时间、地点、人物和事件经过
 10. 描述中包含事件产生的影响和后续发展
+11. 每个事件的描述要具体、详实但不过度冗长，通常在100-300字之间为宜
+12. 注重记录事件的事实性内容，而非评论性或推测性内容
 `;
 
 // 详细事件分析的系统提示
@@ -761,6 +758,117 @@ export async function fetchEventDetails(
     console.error("API request failed:", error);
     if (progressCallback) {
       progressCallback(`获取事件详情失败：${error instanceof Error ? error.message : '未知错误'}`, 'error');
+    }
+    throw error;
+  }
+}
+
+// 新增：获取影响评估数据
+export async function fetchImpactAssessment(
+  query: string,
+  apiConfig: ApiConfig,
+  progressCallback?: ProgressCallback,
+  streamCallback?: StreamCallback
+): Promise<string> {
+  try {
+    const { model, endpoint, apiKey } = apiConfig;
+    // 使用专门的影响评估端点
+    const apiUrl = getApiUrl(apiConfig, 'impact-assessment');
+
+    if (progressCallback) {
+      progressCallback(`正在获取事件【${query.substring(0, 30)}...】的影响评估`, 'pending');
+    }
+
+    // 先执行搜索查询获取最新信息
+    let searchResults = null;
+    let searchContext = "";
+
+    if (apiConfig.searxng?.enabled) {
+      searchResults = await searchWithSearxng(query, apiConfig, progressCallback);
+      searchContext = formatSearchResultsForAI(searchResults);
+      if (progressCallback) {
+        progressCallback('影响评估数据搜索完成', 'completed');
+      }
+    }
+
+    if (progressCallback) {
+      progressCallback('正在使用AI助手分析事件影响', 'pending');
+    }
+
+    const payload = {
+      model: model,
+      endpoint: endpoint,
+      apiKey: apiKey,
+      query: query,
+      searchResults: searchContext || undefined
+    };
+
+    // 检查是否是使用环境变量配置
+    const isUsingEnvConfig =
+      model === "使用环境变量配置" ||
+      endpoint === "使用环境变量配置" ||
+      apiKey === "使用环境变量配置";
+
+    console.log('发送影响评估请求到服务器:', {
+      使用环境变量: isUsingEnvConfig,
+      端点: apiUrl,
+      模型: model,
+      使用搜索: searchContext ? '是' : '否',
+      使用流式输出: streamCallback ? '是' : '否'
+    });
+
+    // 处理结果的变量
+    let content = "";
+
+    // 如果提供了streamCallback，使用流式处理
+    if (streamCallback) {
+      // 收集完整输出
+      let fullOutput = "";
+
+      // 流式请求处理回调
+      const handleStreamChunk = (chunk: string, isDone: boolean) => {
+        // 将新的内容块添加到完整输出中
+        fullOutput += chunk;
+
+        // 传递给原始回调
+        streamCallback(chunk, isDone);
+
+        // 当完成时，标记进度为完成
+        if (isDone && progressCallback) {
+          progressCallback('影响评估分析完成', 'completed');
+        }
+      };
+
+      // 发起流式请求
+      await fetchWithStream(apiUrl, payload, handleStreamChunk);
+
+      // 使用收集的完整输出
+      content = fullOutput;
+    } else {
+      // 非流式处理
+      const headers = {
+        'Content-Type': 'application/json'
+      };
+
+      // 设置请求超时
+      const response = await axios.post(apiUrl, payload, {
+        headers,
+        timeout: API_TIMEOUT_MS
+      });
+
+      // 提取内容
+      content = response.data.choices[0].message.content;
+
+      if (progressCallback) {
+        progressCallback('影响评估分析完成', 'completed');
+      }
+    }
+
+    return content;
+  } catch (error) {
+    console.error("Impact assessment API request failed:", error);
+    if (progressCallback) {
+      progressCallback(`获取影响评估失败：${error instanceof Error ? error.message : '未知错误'}`, 'error');
     }
     throw error;
   }
