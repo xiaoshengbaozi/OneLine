@@ -963,15 +963,15 @@ function MainContent() {
           )}
 
           <div className="w-full mx-auto relative z-30">
-            <HotSearchDropdown
-              visible={searchPosition === 'center' && showHotSearch && !isLoading}
-              onSelectHotItem={handleHotItemClick}
-              hasSearchResults={timelineData.events.length > 0}
-            />
             <SearchHistory
               visible={showSearchHistory && !isLoading}
               historyItems={searchHistory}
               onSelectHistoryItem={handleHistoryItemClick}
+            />
+            <HotSearchDropdown
+              visible={searchPosition === 'center' && showHotSearch && !isLoading}
+              onSelectHotItem={handleHotItemClick}
+              hasSearchResults={timelineData.events.length > 0}
             />
           </div>
         </div>
