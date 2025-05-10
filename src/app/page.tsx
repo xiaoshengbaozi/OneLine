@@ -885,21 +885,8 @@ function MainContent() {
               className="flex-1 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/70 text-sm sm:text-base h-8 sm:h-10"
               onFocus={(e) => {
                 e.stopPropagation();
-                if (!query.trim()) {
-                  if (timelineData.events.length === 0) {
-                    // If no search results yet, show hot searches
-                    setShowHotSearch(true);
-                    setShowSearchHistory(false);
-                  } else if (searchHistory.length > 0) {
-                    // If we have previous searches, show history
-                    setShowSearchHistory(true);
-                    setShowHotSearch(false);
-                  }
-                } else if (searchHistory.length > 0) {
-                  // If there's text in the input, show history if available
-                  setShowSearchHistory(true);
-                  setShowHotSearch(false);
-                }
+                setShowSearchHistory(true);
+                setShowHotSearch(false);
               }}
               onBlur={() => {
                 // Add a small delay before hiding search history to allow for clicks on history items
