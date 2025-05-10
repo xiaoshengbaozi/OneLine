@@ -21,6 +21,7 @@ import { fetchTimelineData, fetchEventDetails, fetchImpactAssessment, type Progr
 import { SearchProgress, type SearchProgressStep } from '@/components/SearchProgress';
 import { BaiduHotList } from '@/components/BaiduHotList';
 import { HotSearchDropdown } from '@/components/HotSearchDropdown';
+import { SearchHistory, type SearchHistoryItem } from '@/components/SearchHistory';
 import { toast } from 'sonner';
 import { Settings, SortDesc, SortAsc, Download, Search, ChevronDown, Flame, FileText } from 'lucide-react';
 import { Card, CardHeader, CardTitle, CardContent, CardDescription } from '@/components/ui/card';
@@ -75,6 +76,11 @@ function MainContent() {
   const [showHotSearch, setShowHotSearch] = useState(true);
   const [flyingHotItem, setFlyingHotItem] = useState<{ title: string, startX: number, startY: number } | null>(null);
 
+  // Search history related states
+  const [searchHistory, setSearchHistory] = useState<SearchHistoryItem[]>([]);
+  const [showSearchHistory, setShowSearchHistory] = useState(false);
+  const MAX_HISTORY_ITEMS = 10;
+
   const [showImpact, setShowImpact] = useState<boolean>(false);
 
   const [searchStartTime, setSearchStartTime] = useState<number | null>(null);
@@ -89,6 +95,75 @@ function MainContent() {
   // For impact assessment content (to parse summary)
   const [impactContent, setImpactContent] = useState<string | null>(null);
   const [parsedImpact, setParsedImpact] = useState<{ summary?: string } | null>(null);
+
+  // Load search history from localStorage when component mounts
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      try {
+        const storedHistory = localStorage.getItem('oneLine_searchHistory');
+        if (storedHistory) {
+          const parsedHistory = JSON.parse(storedHistory) as SearchHistoryItem[];
+          // Sort by timestamp (newest first)
+          const sortedHistory = parsedHistory.sort((a, b) => b.timestamp - a.timestamp);
+          setSearchHistory(sortedHistory);
+        }
+      } catch (error) {
+        console.error('Failed to load search history from localStorage:', error);
+      }
+    }
+  }, []);
+
+  // Function to save a search query to history
+  const saveSearchToHistory = (searchQuery: string) => {
+    if (!searchQuery.trim()) return;
+
+    const trimmedQuery = searchQuery.trim();
+    const timestamp = Date.now();
+
+    setSearchHistory(prevHistory => {
+      // Check if this query already exists in history
+      const existingItemIndex = prevHistory.findIndex(item => item.query.toLowerCase() === trimmedQuery.toLowerCase());
+      let newHistory: SearchHistoryItem[];
+
+      if (existingItemIndex >= 0) {
+        // Update existing item with new timestamp and increment count
+        const existingItem = prevHistory[existingItemIndex];
+        const updatedItem = {
+          ...existingItem,
+          timestamp,
+          count: existingItem.count + 1
+        };
+
+        // Remove the existing item and create a new array
+        newHistory = [
+          updatedItem,
+          ...prevHistory.slice(0, existingItemIndex),
+          ...prevHistory.slice(existingItemIndex + 1)
+        ];
+      } else {
+        // Add new item to the beginning
+        const newItem: SearchHistoryItem = {
+          query: trimmedQuery,
+          timestamp,
+          count: 1
+        };
+
+        newHistory = [newItem, ...prevHistory];
+      }
+
+      // Keep only the most recent MAX_HISTORY_ITEMS
+      if (newHistory.length > MAX_HISTORY_ITEMS) {
+        newHistory = newHistory.slice(0, MAX_HISTORY_ITEMS);
+      }
+
+      // Save to localStorage
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('oneLine_searchHistory', JSON.stringify(newHistory));
+      }
+
+      return newHistory;
+    });
+  };
 
   const progressCallback: ProgressCallback = (message, status) => {
     const newStep: SearchProgressStep = {
@@ -126,6 +201,7 @@ function MainContent() {
       console.log("跳过相同热搜项点击:", title);
       setShowHotList(false);
       setShowHotSearch(false);
+      setShowSearchHistory(false);
       return;
     }
 
@@ -143,6 +219,9 @@ function MainContent() {
 
     lastSearchQuery.current = title.trim();
 
+    // Save the hot item to search history
+    saveSearchToHistory(title);
+
     setFlyingHotItem({ title, startX, startY });
 
     setTimeout(() => {
@@ -150,6 +229,7 @@ function MainContent() {
       setShowHotList(false);
       setFlyingHotItem(null);
       setShowHotSearch(false);
+      setShowSearchHistory(false);
 
       setTimeout(() => {
         if (inputRef.current) {
@@ -256,18 +336,21 @@ function MainContent() {
   useEffect(() => {
     if (!query.trim()) {
       setShowHotSearch(true);
+      setShowSearchHistory(false);
     }
   }, [query]);
 
   useEffect(() => {
     if (query.trim()) {
       setShowHotSearch(false);
+      setShowSearchHistory(false);
     }
   }, [query]);
 
   useEffect(() => {
     if (timelineVisible && timelineData.events.length > 0) {
       setShowHotSearch(false);
+      setShowSearchHistory(false);
     }
   }, [timelineVisible, timelineData.events.length]);
 
@@ -349,8 +432,12 @@ function MainContent() {
 
     lastSearchQuery.current = query.trim();
 
+    // Save search query to history
+    saveSearchToHistory(query);
+
     setShowHotList(false);
     setShowHotSearch(false);
+    setShowSearchHistory(false);
 
     setSearchProgressSteps([]);
     setSearchProgressActive(true);
@@ -720,6 +807,33 @@ function MainContent() {
     setShowHotList(prev => !prev);
   };
 
+  // Handle a click on a history item
+  const handleHistoryItemClick = (queryText: string) => {
+    if (queryText.trim() === query.trim() && timelineData.events.length > 0 && timelineVisible) {
+      setShowSearchHistory(false);
+      return;
+    }
+
+    // Update last search query reference and set query
+    lastSearchQuery.current = queryText.trim();
+    setQuery(queryText);
+
+    // Update the count in history
+    saveSearchToHistory(queryText);
+
+    setShowSearchHistory(false);
+
+    // Use setTimeout to allow the UI to update before submitting the form
+    setTimeout(() => {
+      if (inputRef.current) {
+        const form = inputRef.current.form;
+        if (form) {
+          form.dispatchEvent(new Event('submit', { cancelable: true, bubbles: true }));
+        }
+      }
+    }, 100);
+  };
+
   return (
     <main className="flex min-h-screen flex-col relative">
       <div className="bg-gradient-purple" />
@@ -771,9 +885,14 @@ function MainContent() {
               className="flex-1 border-0 bg-transparent focus-visible:ring-0 placeholder:text-muted-foreground/70 text-sm sm:text-base h-8 sm:h-10"
               onFocus={(e) => {
                 e.stopPropagation();
-                if (!query.trim() && timelineData.events.length === 0) {
-                  setShowHotSearch(true);
-                }
+                setShowSearchHistory(true);
+                // 不关闭热搜榜，历史和热搜可同时显示
+              }}
+              onBlur={() => {
+                // Add a small delay before hiding search history to allow for clicks on history items
+                setTimeout(() => {
+                  setShowSearchHistory(false);
+                }, 200);
               }}
             />
 
@@ -844,6 +963,11 @@ function MainContent() {
           )}
 
           <div className="w-full mx-auto relative z-30">
+            <SearchHistory
+              visible={showSearchHistory && !isLoading}
+              historyItems={searchHistory}
+              onSelectHistoryItem={handleHistoryItemClick}
+            />
             <HotSearchDropdown
               visible={searchPosition === 'center' && showHotSearch && !isLoading}
               onSelectHotItem={handleHotItemClick}
