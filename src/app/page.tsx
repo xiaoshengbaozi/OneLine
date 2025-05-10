@@ -886,7 +886,7 @@ function MainContent() {
               onFocus={(e) => {
                 e.stopPropagation();
                 setShowSearchHistory(true);
-                setShowHotSearch(false);
+                // 不关闭热搜榜，历史和热搜可同时显示
               }}
               onBlur={() => {
                 // Add a small delay before hiding search history to allow for clicks on history items

@@ -55,7 +55,7 @@ export function SearchHistory({ onSelectHistoryItem, visible, historyItems }: Se
   };
 
   return (
-    <div className="search-history-dropdown w-full rounded-lg glass-card mt-2 overflow-hidden animate-fade-in">
+    <div className="search-history-dropdown w-full rounded-lg glass-card mt-2 overflow-hidden animate-fade-in z-30">
       <div className="p-2.5 flex items-center justify-between border-b border-muted/20">
         <h3 className="text-sm font-medium flex items-center">
           <Clock size={14} className="text-blue-500 mr-1.5" />
