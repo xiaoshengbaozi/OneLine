@@ -3,7 +3,7 @@
   publish = ".next"
 
 [build.environment]
-  NODE_VERSION = "18"
+  NODE_VERSION = "22"
 
 [images]
   remote_images = ["https://same-assets.com/*"]
@@ -17,4 +17,4 @@
   included_files = [".next/server/pages/api/**"]
   node_bundler = "esbuild"
   # 将超时设置为60秒(60000ms)
-  timeout = 120
+  timeout = 60
