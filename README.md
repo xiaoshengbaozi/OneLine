@@ -1,7 +1,7 @@
-# OneLine (一线)
+# OneLine (一线) 
 
-OneLine（一线）是一个AI驱动的热点事件时间轴生成工具，让您轻松追踪和了解热门事件的发展过程。
-
+OneLine（一线）是一个AI驱动的热点事件梳理分析工具，让您轻松追踪和了解热门事件的发展过程及其带来的影响。
+- ![](https://img.shields.io/badge/One-Line-blue)![GitHub Stars](https://img.shields.io/github/stars/chengtx809/OneLine?style=social) ![GitHub Forks](https://img.shields.io/github/forks/chengtx809/OneLine?style=social)
 ## 演示
 
 在线体验：[https://oneline.chengtx.me](https://oneline.chengtx.me)
@@ -177,8 +177,6 @@ OneLine可以轻松部署到Vercel平台：
 * 感谢[@snailyp](https://github.com/snailyp)大佬的[gemini-balance](https://github.com/snailyp/gemini-balance)项目，为本项目Demo提供了API支持
 * 感谢[@justincnn](https://github.com/justincnn)维护Docker镜像
 * 感谢所有贡献者和使用者的支持和反馈
-
-## 📊 项目状态
 [![Star History Chart](https://api.star-history.com/svg?repos=chengtx809/OneLine&type=Date)](https://www.star-history.com/#chengtx809/OneLine&Date)
-* GitHub Stars: ![GitHub Stars](https://img.shields.io/github/stars/chengtx809/OneLine?style=social)
-* GitHub Forks: ![GitHub Forks](https://img.shields.io/github/forks/chengtx809/OneLine?style=social)
+[![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
+
