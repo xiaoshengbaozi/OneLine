@@ -177,6 +177,8 @@ OneLine可以轻松部署到Vercel平台：
 * 感谢[@snailyp](https://github.com/snailyp)大佬的[gemini-balance](https://github.com/snailyp/gemini-balance)项目，为本项目Demo提供了API支持
 * 感谢[@justincnn](https://github.com/justincnn)维护Docker镜像
 * 感谢所有贡献者和使用者的支持和反馈
+* CDN acceleration and security protection for this project are sponsored by [Tencent EdgeOne](https://edgeone.ai/?from=github)
 [![Star History Chart](https://api.star-history.com/svg?repos=chengtx809/OneLine&type=Date)](https://www.star-history.com/#chengtx809/OneLine&Date)
 [![Powered by DartNode](https://dartnode.com/branding/DN-Open-Source-sm.png)](https://dartnode.com "Powered by DartNode - Free VPS for Open Source")
+[![Best Asian CDN, Edge, and Secure Solutions - Tencent EdgeOne](https://edgeone.ai/media/34fe3a45-492d-4ea4-ae5d-ea1087ca7b4b.png)](https://edgeone.ai/?from=github "Best Asian CDN, Edge, and Secure Solutions - Tencent EdgeOne")
 
