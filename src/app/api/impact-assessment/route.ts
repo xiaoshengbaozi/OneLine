@@ -1,10 +1,9 @@
-import { NextResponse } from 'next/server';
-import axios from 'axios';
-import { getEnvConfig } from '@/lib/env';
-import type { ApiConfig } from '@/types';
+import { NextResponse } from 'next/server'
+import { getEnvConfig } from '@/lib/env'
+import { proxyChatCompletions } from '@/lib/server/llmProxy'
 
-export const maxDuration = 60; // Set maximum duration to 60 seconds (Vercel hobby plan limit)
-export const dynamic = 'force-dynamic';
+export const maxDuration = 60 // Set maximum duration to 60 seconds (Vercel hobby plan limit)
+export const dynamic = 'force-dynamic'
 
 // Impact assessment system prompt
 const IMPACT_ASSESSMENT_PROMPT = `
@@ -64,111 +63,52 @@ const IMPACT_ASSESSMENT_PROMPT = `
 5. 避免过度推测和主观判断
 6. 对于不确定性高的预测，明确标示信心水平
 7. 当某个维度与事件关联度低时，应完全省略该维度的分析，而不是提供空洞或牵强的内容
-`;
+`
 
 // 处理POST请求
 export async function POST(req: Request) {
   try {
-    const { model, endpoint, apiKey, query, searchResults } = await req.json();
+    const { model, endpoint, apiKey, query, searchResults } = await req.json()
 
-    // 获取配置
-    const config = getEnvConfig();
+    // 获取环境变量配置（仅在声明使用环境变量时使用）
+    const config = getEnvConfig()
 
-    // 根据请求参数或环境变量构建API配置
-    const apiConfig: ApiConfig = {
-      endpoint: endpoint === "使用环境变量配置" ? config.API_ENDPOINT || "" : endpoint,
-      model: model === "使用环境变量配置" ? config.API_MODEL || "" : model,
-      apiKey: apiKey === "使用环境变量配置" ? config.API_KEY || "" : apiKey,
-    };
+    const resolvedModel = model === '使用环境变量配置' ? config.API_MODEL || '' : model
+    const resolvedEndpoint = endpoint === '使用环境变量配置' ? config.API_ENDPOINT || '' : endpoint
+    const resolvedApiKey = apiKey === '使用环境变量配置' ? config.API_KEY || '' : apiKey
 
     // 构建消息
-    const messages = [
-      { role: "system", content: IMPACT_ASSESSMENT_PROMPT },
-    ];
+    const messages = [{ role: 'system', content: IMPACT_ASSESSMENT_PROMPT }]
+    if (searchResults) messages.push({ role: 'system', content: searchResults })
+    messages.push({ role: 'user', content: `请对以下事件进行影响评估分析：${query}` })
 
-    // 添加搜索结果（如果有）
-    if (searchResults) {
-      messages.push({ role: "system", content: searchResults });
-    }
-
-    // 添加用户查询
-    messages.push({ role: "user", content: `请对以下事件进行影响评估分析：${query}` });
-
-    // 构建API请求参数
     const requestPayload = {
-      model: apiConfig.model,
-      messages: messages,
+      model: resolvedModel,
+      messages,
       temperature: 0.7,
-      stream: true // 启用流式输出
-    };
-
-    // 根据endpoint构建完整的API URL
-    let apiUrl = apiConfig.endpoint;
-
-    // 如果是Azure OpenAI，需要特殊处理URL
-    if (apiUrl.includes('openai.azure.com')) {
-      // 从model中提取deployment名称，格式通常为"deployment@model"
-      const deploymentName = apiConfig.model.split('@')[0];
-      if (!apiUrl.endsWith('/')) apiUrl += '/';
-      apiUrl += `openai/deployments/${deploymentName}/chat/completions?api-version=2023-05-15`;
-    } else if (!apiUrl.endsWith('/chat/completions')) {
-      // 对于OpenAI API和兼容的API，确保URL指向chat/completions
-      if (!apiUrl.endsWith('/')) apiUrl += '/';
-      apiUrl += 'chat/completions';
+      stream: true,
     }
 
-    // 构建请求头
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
+    const res = await proxyChatCompletions(
+      { endpoint: resolvedEndpoint, model: resolvedModel, apiKey: resolvedApiKey },
+      requestPayload,
+      { timeoutMs: 60000, responseMode: 'stream' },
+    )
 
-    // 设置API密钥头部，根据是否为Azure OpenAI选择正确的头部名称
-    if (apiUrl.includes('openai.azure.com')) {
-      headers['api-key'] = apiConfig.apiKey;
-    } else {
-      headers['Authorization'] = `Bearer ${apiConfig.apiKey}`;
+    if (res instanceof Response) {
+      return res
     }
 
-    // 进行API请求，并将结果流式传输到客户端
-    const response = await fetch(apiUrl, {
-      method: 'POST',
-      headers: headers,
-      body: JSON.stringify(requestPayload),
-    });
-
-    // 如果响应不成功，抛出错误
-    if (!response.ok) {
-      // 尝试读取错误信息
-      let errorText = await response.text();
-      try {
-        const errorJson = JSON.parse(errorText);
-        errorText = errorJson.error?.message || errorText;
-      } catch (e) {
-        // 如果解析失败，使用原始错误文本
-      }
-
-      // 返回错误响应
-      return NextResponse.json(
-        { error: `AI API responded with status ${response.status}: ${errorText}` },
-        { status: response.status }
-      );
+    if ('ok' in res && !res.ok) {
+      return NextResponse.json(res.error, { status: res.status })
     }
 
-    // 直接将AI服务的流式响应传递给客户端
-    return new Response(response.body, {
-      headers: {
-        'Content-Type': 'text/event-stream',
-        'Cache-Control': 'no-cache',
-        'Connection': 'keep-alive',
-      },
-    });
+    // 正常情况下不会到这里（默认流式）；作为兜底返回JSON
+    return NextResponse.json((res as any).data)
   } catch (error: any) {
-    console.error('Error in impact assessment API:', error);
+    console.error('Error in impact assessment API:', error)
 
     // 构建错误响应
-    return NextResponse.json(
-      { error: error.message || 'An unexpected error occurred' },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: error.message || 'An unexpected error occurred' }, { status: 500 })
   }
 }
