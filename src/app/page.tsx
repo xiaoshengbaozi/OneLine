@@ -863,7 +863,7 @@ function MainContent() {
           }
           handleSubmit(e);
         }}
-        className={`${searchPosition === 'center' ? 'search-container-center' : 'search-container-top'} z-30`}
+        className={`${searchPosition === 'center' ? 'search-container-center' : 'search-container-top'} z-1001`}
       >
         {searchPosition === 'center' && (
           <div className="flex flex-col items-center mb-8 animate-slide-down">
@@ -977,7 +977,7 @@ function MainContent() {
         </div>
       </form>
 
-      <div className="w-full mx-auto px-4 max-w-3xl mt-2">
+      <div className="w-full mx-auto px-4 max-w-3xl pt-24">
         <SearchProgress
           steps={searchProgressSteps}
           visible={searchProgressVisible}
